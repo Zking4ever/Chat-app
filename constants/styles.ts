@@ -1,6 +1,10 @@
 import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
+  wrapper:{
+    backdropFilter:"blur(10px)",
+    backgroundColor: '#1e2939',
+  },
   title:{
     fontSize:40,
     color: "rgba(255, 255, 255, 0.87)",
@@ -11,7 +15,7 @@ const styles = StyleSheet.create({
     backgroundColor:"transparent",
   },
   hero:{
-    height:1000,
+    height:500,
     justifyContent:"center",
     alignItems:"center",
     textAlign:"center",
@@ -22,8 +26,6 @@ const styles = StyleSheet.create({
     gap:1,
     width:"100%",
     justifyContent:"center",
-    left:20,
-    
   },
   card:{
     width:"30%",
@@ -35,6 +37,7 @@ const styles = StyleSheet.create({
     backgroundSize: "cover",
     zIndex:1,
     transform:"translateY(-12px)",
+    overflow:'hidden'
   },
   catagory:{
     borderRadius:10,
@@ -62,6 +65,11 @@ const styles = StyleSheet.create({
     textAlign:"center",
     fontSize:28,
     marginBottom:5
+  },
+  catTitle:{
+    fontSize:23,
+    color:"azure",
+    marginVertical:10,
   },
   movies:{
     rowGap:18,

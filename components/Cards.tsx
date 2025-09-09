@@ -24,13 +24,15 @@ export default function Cards({ movies }: CardsProps){
         maxWidth:160,
         aspectRatio:2.5/3,
         borderRadius: 5,
+        overflow:'hidden'
     }));
     const thirdcard = useAnimatedStyle(() => ({
         transform: [{ rotateZ: `${secondCardAnimation.value}deg` }],
         width:"30%",
         maxWidth:160,
         aspectRatio:2.5/3,
-        borderRadius: 5
+        borderRadius: 5,
+        overflow:'hidden'
     }));
 
     useEffect(() => {
