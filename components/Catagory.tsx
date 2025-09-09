@@ -15,8 +15,8 @@ function Catagory({CatInfo}){
 
     const catKey = CatInfo.key;
     return <TouchableOpacity onPress={()=>handlePress(catKey)} style={styles.catagoryButton}>
-                <IconSymbol color={"azure"} name={CatInfo.icon}/>
-                <Text style={{fontSize:24,textAlign:"center"}}>{CatInfo.name}</Text>
+                <Text style={{fontSize:40,textAlign:"center"}}>{CatInfo.icon}</Text>
+                <Text style={{fontSize:24,textAlign:"center",color:'azure'}}>{CatInfo.name}</Text>
             </TouchableOpacity>
 }
 

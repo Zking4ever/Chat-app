@@ -1,9 +1,9 @@
 import { View, Text, ScrollView, ImageBackground,StyleSheet, TouchableOpacity,FlatList } from 'react-native';
-import { router } from 'expo-router';
 import { useState, useEffect } from 'react';
 import useStore from '@/stores/store';
 import WebView from 'react-native-webview';
 import MovieCard from '@/components/MovieCard';
+import Loader from '@/components/Loader';
 
 export default function Details() {
 
@@ -65,9 +65,7 @@ const getRelatedMovies = async()=>{
     },[movieInfo]);
 
     if(isLoading){
-      return (<View className="loading">
-                <Text>Loading...</Text>
-              </View>);
+      return  <Loader color="black"/>;
     }
     if(movieInfo.length!==0){
           const imageUrl = "https://image.tmdb.org/t/p/w500" + movieInfo.poster_path;
@@ -90,7 +88,7 @@ const getRelatedMovies = async()=>{
                                                 <Text style={styles.title}> {movieInfo.original_title}</Text>
                                                 <Text style={styles.date}> {movieInfo.release_date}</Text>
                                                 <Text style={styles.rating}>  ⭐{movieInfo.vote_average}/10</Text>
-                                                {Videos&&Videos.map((video)=>{var link="https://youtube.com/embed/"+video.key; return (video.type==="Trailer"&&video.name.toLowerCase().includes("official trailer")?<TouchableOpacity style={styles.button} onPress={()=>openTrailer(link)}><Text>{video.name}</Text></TouchableOpacity> : "")})}
+                                                {Videos.map((video)=>{var link="https://youtube.com/embed/"+video.key; return (video.type==="Trailer"&&video.name.toLowerCase().includes("official trailer")?<TouchableOpacity style={styles.button} onPress={()=>openTrailer(link)}><Text style={{textAlign:'center'}}>{video.name}</Text></TouchableOpacity> : "")})}
                                             </View>
                                           </View>
                                             <Text style={styles.details}>{movieInfo.overview}</Text>
@@ -157,13 +155,13 @@ const styles = StyleSheet.create({
   },
   button:{
     marginTop:10,
+    marginLeft:5,
     backgroundColor:"#e50914",
     padding:10,
     borderRadius:5,
-    textAlign:"center",
-    color:'azure',
     fontWeight:"bold",
     fontSize:16,
+    maxWidth:180,
   },
   details:{
     fontFamily:'ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji",',

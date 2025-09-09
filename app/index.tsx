@@ -51,17 +51,18 @@ export default function HomeScreen() {
                                       <View>
                                         <Text style={{fontSize:32,color:"azure"}}>Watch based on </Text>
                                         <View style={styles.catagory}>
-                                          <Text style={styles.catagorytitle}>Genres</Text>
-                                          <View style={styles.catagoryContainer}>
-                                            {GenereData.map((catagory)=>(<Catagory CatInfo={catagory}/>))}
-                                          </View>
-                                        </View>
-                                        <View style={styles.catagory}>
                                           <Text style={styles.catagorytitle}>Mood</Text>
                                           <View style={styles.catagoryContainer}>
                                             {MoodData.map((catagory)=>(<Catagory CatInfo={catagory} />))}
                                           </View>
                                         </View>
+                                        <View style={styles.catagory}>
+                                          <Text style={styles.catagorytitle}>Genres</Text>
+                                          <View style={styles.catagoryContainer}>
+                                            {GenereData.map((catagory)=>(<Catagory CatInfo={catagory}/>))}
+                                          </View>
+                                        </View>
+                                        
                                       </View>
                                   <Text style={{fontSize:32,color:"azure",marginLeft:20,marginBottom:10}}>Trending Movies</Text>
 

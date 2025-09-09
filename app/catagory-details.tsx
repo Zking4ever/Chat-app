@@ -3,6 +3,7 @@ import {useState,useEffect} from 'react';
 import useStore from "@/stores/store";
 import {GenereData,MoodData} from '@/constants/data'
 import MovieCard from "@/components/MovieCard";
+import Loader from "@/components/Loader";
 import styles from "@/constants/styles";
 
 const backendUrl = 'https://moviemate-beta.vercel.app';
@@ -31,8 +32,6 @@ function CatagoryMovies(){
                 const response = await fetch(`${backendUrl}/api/movies/genere/${genreid}`)
                 const data = await response.json();
                 setMovies(data.results);
-                console.log(data);
-                
             } catch (error) {
                 console.log('Error geting catagory movies')
             }finally{
@@ -41,7 +40,7 @@ function CatagoryMovies(){
     }
     if(isloading){
         return(
-            <Text style={{color:'gray'}}>Loading...</Text>
+            <Loader color="black"/>
         )
     }
 

@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   catagory:{
     borderRadius:10,
     margin:5,
-    padding:3
+    padding:3,
   },
   catagoryContainer:{
     padding:8,
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   catagoryButton:{
     padding:10 ,
-    backgroundColor:"rgba(255, 255, 255, 0.1)",
+    backgroundColor:"rgba(255, 255, 255, 0.05)",
     borderRadius:10,
     flexDirection:"column",
     justifyContent:"center",
@@ -64,7 +64,8 @@ const styles = StyleSheet.create({
   catagorytitle:{
     textAlign:"center",
     fontSize:28,
-    marginBottom:5
+    marginBottom:5,
+    color:"azure",
   },
   catTitle:{
     fontSize:23,
