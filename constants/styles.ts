@@ -3,7 +3,8 @@ import { StyleSheet } from "react-native";
 const styles = StyleSheet.create({
   wrapper:{
     backdropFilter:"blur(10px)",
-    backgroundColor: '#1e2939',
+    backgroundColor: '#21393ae8',
+
   },
   title:{
     fontSize:40,
@@ -39,33 +40,32 @@ const styles = StyleSheet.create({
     transform:"translateY(-12px)",
     overflow:'hidden'
   },
-  catagory:{
-    borderRadius:10,
-    margin:5,
-    padding:3,
-  },
   catagoryContainer:{
-    padding:8,
-    flexDirection:"row",
+    width:400,
+    padding:10,
+    alignSelf:'center',
+    backgroundColor:'azure',
+    borderRadius:15,
+    alignItems:'center'
+  },
+  catagories:{
+    padding:3,
     flexWrap:"wrap",
-    rowGap:12,
-    justifyContent:"space-around",
+    flexDirection:'row',
+    gap:5,
+    rowGap:5,
   },
   catagoryButton:{
-    padding:10 ,
-    backgroundColor:"rgba(255, 255, 255, 0.05)",
+    paddingVertical:3,
+    paddingHorizontal:7,
+    backgroundColor:'black',
     borderRadius:10,
-    flexDirection:"column",
-    justifyContent:"center",
-    alignItems: "center",
-    gap:5,
-    width:120
   },
   catagorytitle:{
     textAlign:"center",
-    fontSize:28,
-    marginBottom:5,
-    color:"azure",
+    fontSize:25,
+    margin:3,
+    color:"black",
   },
   catTitle:{
     fontSize:23,

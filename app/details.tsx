@@ -101,7 +101,9 @@ const getRelatedMovies = async()=>{
                                                 <WebView  style={styles.trailer}
                                                           source={{ uri: trailerLink || 'https://youtube.com/embed/Ldmhii3Jd1c' }}
                                                           allowsFullscreenVideo
-                                                          allowsInlineMediaPlayback></WebView>
+                                                          allowsInlineMediaPlayback
+                                                          javaScriptEnabled={true}
+                                                          domStorageEnabled={true}></WebView>
                                                 <TouchableOpacity style={styles.close} onPress={()=>closeTrailer()}><Text>❌close</Text></TouchableOpacity>
                                             </View> }
                                         <View style={{margin:10}}><Text style={{fontSize:20,color:'azure',fontWeight:'bold'}}>Related Movies</Text></View>

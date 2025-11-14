@@ -48,21 +48,16 @@ export default function HomeScreen() {
                                           <Text style={styles.title}>MovieMate</Text>
                                           <Text style={styles.subtitle}>Discover your next favorite movie</Text>
                                       </View>
-                                      <View>
-                                        <Text style={{fontSize:32,color:"azure"}}>Watch based on </Text>
-                                        <View style={styles.catagory}>
+                                      <Text style={{fontSize:32,color:"azure"}}>Watch based on </Text>
+                                      <View style={styles.catagoryContainer}>
                                           <Text style={styles.catagorytitle}>Mood</Text>
-                                          <View style={styles.catagoryContainer}>
-                                            {MoodData.map((catagory)=>(<Catagory CatInfo={catagory} />))}
+                                          <View style={styles.catagories}>
+                                            {MoodData.map((catagory)=>(<Catagory key={catagory.key} CatInfo={catagory} />))}
                                           </View>
-                                        </View>
-                                        <View style={styles.catagory}>
                                           <Text style={styles.catagorytitle}>Genres</Text>
-                                          <View style={styles.catagoryContainer}>
-                                            {GenereData.map((catagory)=>(<Catagory CatInfo={catagory}/>))}
+                                          <View style={styles.catagories}>
+                                            {GenereData.map((catagory)=>(<Catagory key={catagory.key} CatInfo={catagory}/>))}
                                           </View>
-                                        </View>
-                                        
                                       </View>
                                   <Text style={{fontSize:32,color:"azure",marginLeft:20,marginBottom:10}}>Trending Movies</Text>
 

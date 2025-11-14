@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-vector-icons/fontawesome": "^12.3.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.17",
@@ -38,6 +39,7 @@
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-svg": "15.11.2",
+    "react-native-vector-icons": "^10.3.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
     "zustand": "^5.0.8"

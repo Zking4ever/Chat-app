@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "moviemate-mobile",
-    "slug": "moviemate-mobile",
+    "name": "moviemate",
+    "slug": "moviemate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.astawusamsalu.moviemate"
     },
     "web": {
       "bundler": "metro",
@@ -37,6 +38,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3f4d2a01-872b-4c31-a100-d61097c07912"
+      }
+    },
+    "owner": "astawusamsalu"
   }
 }
