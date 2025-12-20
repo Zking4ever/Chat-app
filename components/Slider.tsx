@@ -1,7 +1,34 @@
-import { ImageBackground } from 'react-native';
-import './slider.css'
+import { ImageBackground, StyleSheet } from 'react-native';
+import { View } from 'react-native';
+import Animated,{useAnimatedStyle,useSharedValue,withRepeat, withSequence, withTiming} from 'react-native-reanimated';
+import { useEffect } from 'react';
 
 export default function Slider() {
+
+  // create the animation
+  const animationValue = useSharedValue(0);
+
+  const AnimatingSlider = useAnimatedStyle(()=>({
+    transform:[{translateX:-animationValue.value}],
+    display: 'flex',
+    flexDirection:'row',
+    gap: '15px',
+    paddingRight: 15,
+  }))
+  const AnimatingSliderTwo = useAnimatedStyle(()=>({
+    transform:[{translateX:(-600+animationValue.value)}],
+    display: 'flex',
+    flexDirection:'row',
+    gap: '15px',
+    paddingRight: 15,
+  }))
+
+  useEffect(()=>{
+      animationValue.value = withRepeat(
+        withSequence(withTiming(0,{duration:2000}), withTiming(sliderStyle.sliderContainer.width,{duration:10000})),
+        -1,false
+      );
+  })
 
   const moviesList = [
     
@@ -103,9 +130,8 @@ export default function Slider() {
     ]
 ]
   const baseUrl = "https://image.tmdb.org/t/p/w500/";
-
   return (
-    <div 
+    <View 
         style={{
           display:'flex',
           flexDirection:'column',
@@ -113,36 +139,80 @@ export default function Slider() {
           transform:'rotate(-5deg)',
           position:'absolute',
           opacity:0.4,
-          backgroundColor:'transparent'
         }}>
           {
-          moviesList.map((moviearray)=>{
+          moviesList.map((moviearray,index)=>{
               return (
-                <div className="sliderContainer" >
-                  <div className="slider" key={moviearray[0].id}>
+                <View style={sliderStyle.sliderContainer}>
+                  <Animated.View style={(index!=1? AnimatingSlider : AnimatingSliderTwo)} key={moviearray[0].id}>
                     {moviearray.map((movie)=>{
-                      return <div className='card' key={movie.original_title}>
+                      return <View style={sliderStyle.card} key={movie.original_title}>
+                        <ImageBackground
+                          source={{uri:`${baseUrl}${movie.poster_path}`}} 
+                          style={{width: '100%', height: '100%',justifyContent:'flex-end'}}
+                          resizeMode='cover'/>
+                      </View>;
+                    })}
+                  </Animated.View>
+                  <Animated.View style={(index!=1? AnimatingSlider : AnimatingSliderTwo)} key={moviearray[1].id}>
+                    {moviearray.map((movie)=>{
+                      return <View style={sliderStyle.card} key={movie.title}>
                         <ImageBackground
                           source={{uri:`${baseUrl}${movie.poster_path}`}} 
                           style={{width: '100%', height: '100%',justifyContent:'flex-end'}}/>
-                      </div>;
+                      </View>;
                     })}
-                  </div>
-                  <div className="slider"  key={moviearray[1].id}>
-                    {moviearray.map((movie)=>{
-                      return <div className='card' key={movie.title}>
-                        <ImageBackground
-                          source={{uri:`${baseUrl}${movie.poster_path}`}} 
-                          style={{width: '100%', height: '100%',justifyContent:'flex-end'}}/>
-                      </div>;
-                    })}
-                  </div>
-                </div>
+                  </Animated.View>
+                </View>
               );
               
           })
           }
-          </div>
+          </View>
   )
 }
+
+const sliderStyle = StyleSheet.create({
+  sliderContainer:{
+    display: 'flex',
+    flexDirection:'row',
+    overflow: 'hidden',
+    width: 680,
+    marginVertical:3
+  },
+  sliderContainerThird:{
+    transform:'translateX(50px)'
+  },
+  slider:{
+    
+    // animation: 'slideN 10s ease-in-out infinite'
+  },
+   sliderSecond:{
+    transform:'translateX(-100%)',
+    // animation: 'slideP 20s ease-in-out infinite'
+  },
+  sliderThird:{
+    // animation: 'slideN 12s ease-in-out infinite';
+  },
+  card:{
+    width: 190,
+    aspectRatio: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    overflow: 'hidden'
+  }
+
+// @keyframes slideN {
+//     to{
+//         transform: translateX(-100%);
+//     }
+// }
+// @keyframes slideP {
+//     to{
+//         transform: translateX(0);
+//     }
+// }
+})
 

@@ -2,11 +2,11 @@ import Slider from '@/components/Slider'
 import { Text } from '@react-navigation/elements'
 import { router } from 'expo-router'
 import React from 'react'
-import { TouchableOpacity } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
 
 export default function index() {
   return (
-    <div 
+    <div
     style={{
       width:'100%',
       height:'100vh',
@@ -14,8 +14,10 @@ export default function index() {
       flexDirection:'column',
       alignItems:'center',
       justifyContent:'center',
+      position:'relative',
       backgroundColor:'black'
-    }}>
+    }}
+    >
       <Slider />
         <Text style={{color:'white',fontSize:24}}>MovieMate</Text>
         <Text style={{color:'white',}}>Get a movie that matches your mood</Text>
