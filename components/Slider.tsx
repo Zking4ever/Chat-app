@@ -1,4 +1,4 @@
-import { ImageBackground, StyleSheet } from 'react-native';
+import { Image, ImageBackground, StyleSheet } from 'react-native';
 import { View } from 'react-native';
 import Animated,{useAnimatedStyle,useSharedValue,withRepeat, withSequence, withTiming} from 'react-native-reanimated';
 import { useEffect } from 'react';
@@ -12,23 +12,24 @@ export default function Slider() {
     transform:[{translateX:-animationValue.value}],
     display: 'flex',
     flexDirection:'row',
-    gap: '15px',
     paddingRight: 15,
+    gap:15
   }))
   const AnimatingSliderTwo = useAnimatedStyle(()=>({
     transform:[{translateX:(-600+animationValue.value)}],
     display: 'flex',
     flexDirection:'row',
-    gap: '15px',
+    gap: 15,
     paddingRight: 15,
   }))
 
   useEffect(()=>{
       animationValue.value = withRepeat(
         withSequence(withTiming(0,{duration:2000}), withTiming(sliderStyle.sliderContainer.width,{duration:10000})),
-        -1,false
+        -1,
+        false
       );
-  })
+  },[])
 
   const moviesList = [
     
@@ -138,18 +139,20 @@ export default function Slider() {
           gap:5,
           transform:'rotate(-5deg)',
           position:'absolute',
-          opacity:0.4,
+          // opacity:0.4,
         }}>
           {
           moviesList.map((moviearray,index)=>{
               return (
-                <View style={sliderStyle.sliderContainer}>
+                <View style={sliderStyle.sliderContainer} key={index}>
                   <Animated.View style={(index!=1? AnimatingSlider : AnimatingSliderTwo)} key={moviearray[0].id}>
                     {moviearray.map((movie)=>{
+                      const imageUri = movie.poster_path ? `${baseUrl}${movie.poster_path}` : 'https://via.placeholder.com/300x450';
                       return <View style={sliderStyle.card} key={movie.original_title}>
-                        <ImageBackground
-                          source={{uri:`${baseUrl}${movie.poster_path}`}} 
-                          style={{width: '100%', height: '100%',justifyContent:'flex-end'}}
+                        <Image
+                          source={{uri:imageUri}} 
+                          key={movie.id}
+                          style={{width: '100%', height: '100%'}}
                           resizeMode='cover'/>
                       </View>;
                     })}
@@ -159,7 +162,7 @@ export default function Slider() {
                       return <View style={sliderStyle.card} key={movie.title}>
                         <ImageBackground
                           source={{uri:`${baseUrl}${movie.poster_path}`}} 
-                          style={{width: '100%', height: '100%',justifyContent:'flex-end'}}/>
+                          style={{width: '90%', height: '100%'}}/>
                       </View>;
                     })}
                   </Animated.View>
@@ -178,41 +181,18 @@ const sliderStyle = StyleSheet.create({
     flexDirection:'row',
     overflow: 'hidden',
     width: 680,
-    marginVertical:3
-  },
-  sliderContainerThird:{
-    transform:'translateX(50px)'
-  },
-  slider:{
-    
-    // animation: 'slideN 10s ease-in-out infinite'
-  },
-   sliderSecond:{
-    transform:'translateX(-100%)',
-    // animation: 'slideP 20s ease-in-out infinite'
-  },
-  sliderThird:{
-    // animation: 'slideN 12s ease-in-out infinite';
+    marginVertical:3,
   },
   card:{
-    width: 190,
-    aspectRatio: 1,
+    width: 195,
+    height:195,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 20,
-    overflow: 'hidden'
+    overflow:'hidden',
+
   }
 
-// @keyframes slideN {
-//     to{
-//         transform: translateX(-100%);
-//     }
-// }
-// @keyframes slideP {
-//     to{
-//         transform: translateX(0);
-//     }
-// }
 })
 

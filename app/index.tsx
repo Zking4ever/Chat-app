@@ -6,10 +6,9 @@ import { TouchableOpacity, View } from 'react-native'
 
 export default function index() {
   return (
-    <div
+    <View
     style={{
-      width:'100%',
-      height:'100vh',
+      flex:1,
       display:'flex',
       flexDirection:'column',
       alignItems:'center',
@@ -38,6 +37,6 @@ export default function index() {
         }}>
           <Text style={{color:'white',fontSize:18}}>Get Started</Text>
         </TouchableOpacity>
-    </div>
+    </View>
   )
 }
