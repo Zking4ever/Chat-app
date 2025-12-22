@@ -2,6 +2,7 @@ import { Image, ImageBackground, StyleSheet } from 'react-native';
 import { View } from 'react-native';
 import Animated,{useAnimatedStyle,useSharedValue,withRepeat, withSequence, withTiming} from 'react-native-reanimated';
 import { useEffect } from 'react';
+import myimage from '../assets/images/back1.jpg'
 
 export default function Slider() {
 
@@ -150,19 +151,19 @@ export default function Slider() {
                       const imageUri = movie.poster_path ? `${baseUrl}${movie.poster_path}` : 'https://via.placeholder.com/300x450';
                       return <View style={sliderStyle.card} key={movie.original_title}>
                         <Image
-                          source={{uri:imageUri}} 
+                          source={myimage} 
                           key={movie.id}
                           style={{width: '100%', height: '100%'}}
                           resizeMode='cover'/>
                       </View>;
                     })}
                   </Animated.View>
-                  <Animated.View style={(index!=1? AnimatingSlider : AnimatingSliderTwo)} key={moviearray[1].id}>
+                  <Animated.View style={[(index!=1? AnimatingSlider : AnimatingSliderTwo),{borderWidth:3,borderColor:'red'}]} key={moviearray[1].id}>
                     {moviearray.map((movie)=>{
                       return <View style={sliderStyle.card} key={movie.title}>
                         <ImageBackground
-                          source={{uri:`${baseUrl}${movie.poster_path}`}} 
-                          style={{width: '90%', height: '100%'}}/>
+                          source={myimage} 
+                          style={{width: '100%', height: '100%'}}/>
                       </View>;
                     })}
                   </Animated.View>
@@ -189,7 +190,6 @@ const sliderStyle = StyleSheet.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
     overflow:'hidden',
 
   }
