@@ -138,7 +138,6 @@ export default function Slider() {
           display:'flex',
           flexDirection:'column',
           gap:5,
-          transform:'rotate(-5deg)',
           position:'absolute',
           // opacity:0.4,
         }}>
@@ -158,7 +157,7 @@ export default function Slider() {
                       </View>;
                     })}
                   </Animated.View>
-                  <Animated.View style={[(index!=1? AnimatingSlider : AnimatingSliderTwo),{borderWidth:3,borderColor:'red'}]} key={moviearray[1].id}>
+                  <Animated.View style={(index!=1? AnimatingSlider : AnimatingSliderTwo)} key={moviearray[1].id}>
                     {moviearray.map((movie)=>{
                       return <View style={sliderStyle.card} key={movie.title}>
                         <ImageBackground
@@ -183,10 +182,11 @@ const sliderStyle = StyleSheet.create({
     overflow: 'hidden',
     width: 680,
     marginVertical:3,
+          transform:'rotate(-5deg)',
   },
   card:{
-    width: 195,
-    height:195,
+    height: 250,
+    aspectRatio:1,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
