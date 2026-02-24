@@ -1,4 +1,4 @@
-import { Link } from 'expo-router'
+import { Link, useNavigation } from 'expo-router'
 import React from 'react'
 import { Button, StyleSheet, Text, TextInput, View } from 'react-native'
 
@@ -16,6 +16,7 @@ const Style = StyleSheet.create({
 })
 
 export default function Login() {
+  const navigator = useNavigation();
   return (
     <View style={Style.container}>
       <Text style={{fontSize:28,color:'scenet'}}>Welcome back</Text>
@@ -34,7 +35,7 @@ export default function Login() {
             />
       </View>
       <View style={[Style.inputContainer,{marginVertical:5}]}>
-        <Button title='Login'/>
+        <Button title='Login' onPress={()=>navigator.navigate('Home')}/>
       </View>
       <Text style={{fontSize:16,marginTop:50}}>Don't have accpunt? <Link href={'./Register'} style={{color:'blue'}}>Sign up</Link></Text>
     </View>

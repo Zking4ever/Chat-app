@@ -1,12 +1,13 @@
-import { Link } from 'expo-router'
-import React from 'react'
-import { Text, View } from 'react-native'
+import { useNavigation } from 'expo-router';
+import React from 'react';
+import { Button, Text, View } from 'react-native';
 
 export default function Welcome() {
+  const navigator = useNavigation();
   return (
     <View style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%'}}>
       <Text style={{fontSize:40}}>Hey there</Text>
-      <Link href={'./Login'} style={{paddingHorizontal:40,paddingVertical:10,fontSize:30,backgroundColor:'gray',color:'white',borderRadius:10}}>Get Started</Link>
+      <Button title='Get Started' onPress={()=>navigator.navigate('Login')}/>
     </View>
   )
 }
