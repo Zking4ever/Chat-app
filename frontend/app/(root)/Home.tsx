@@ -10,11 +10,14 @@ import {
   View
 } from 'react-native';
 import { chatAPI } from '../../lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 // Dummy user ID for development - in real app, get from storage/auth
-const CURRENT_USER_ID = 1;
+
 
 export default function Home() {
+  const user = useAuth();
+  const CURRENT_USER_ID = user?.id || 1;
   const [conversations, setConversations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();

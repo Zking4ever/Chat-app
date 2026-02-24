@@ -1,26 +1,34 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 
 function RootNavigation() {
   const { user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Mark when layout is mounted
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
-    const inAuthGroup =
-      segments[0] === 'Login' ||
-      segments[0] === 'Register' ||
-      segments[0] === 'Welcome';
+    if (!isMounted) return; // 🚨 prevent early navigation
 
-    if (!user && !inAuthGroup) {
+    const inAuthScreens =
+      segments[0] === 'Welcome' ||
+      segments[0] === 'Login' ||
+      segments[0] === 'Register';
+
+    if (!user && !inAuthScreens) {
       router.replace('/Welcome');
     }
 
-    if (user && inAuthGroup) {
+    if (user && inAuthScreens) {
       router.replace('/(root)/Home');
     }
-  }, [user]);
+  }, [user, isMounted]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
