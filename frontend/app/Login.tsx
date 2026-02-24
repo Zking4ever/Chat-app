@@ -1,7 +1,7 @@
-import { useNavigation } from 'expo-router'
 import React, { useState } from 'react'
 import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native'
 import { authAPI } from '../lib/api'
+import { useAuth } from '@/context/AuthContext'
 
 const Style = StyleSheet.create({
   container: {
@@ -37,7 +37,8 @@ const Style = StyleSheet.create({
 })
 
 export default function Login() {
-  const navigation = useNavigation();
+  
+  const { setUser } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
@@ -67,7 +68,7 @@ export default function Login() {
       const user = response.data;
       // Store user in global state/storage (e.g. Zustand)
       console.log('Logged in user:', user);
-      navigation.navigate('Home' as never);
+      setUser(user);
     } catch (error) {
       Alert.alert('Error', 'Verification failed');
     } finally {
@@ -77,7 +78,7 @@ export default function Login() {
 
   return (
     <View style={Style.container}>
-      <Text style={Style.title}>WhatsApp Clone</Text>
+      <Text style={Style.title}>ODA</Text>
 
       {step === 'phone' ? (
         <View style={Style.inputContainer}>
