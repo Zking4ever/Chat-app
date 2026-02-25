@@ -50,6 +50,7 @@ export default function ContactsScreen() {
                         }).sort((a, b) => (b.isRegistered ? 1 : 0) - (a.isRegistered ? 1 : 0));
 
                         setContacts(processed as any);
+                        console.log(processed);
                     } catch (error) {
                         console.error('Detection failed', error);
                     }
