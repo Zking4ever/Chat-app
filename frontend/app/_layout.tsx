@@ -1,6 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import UpdateService from '@/src/services/UpdateService';
 
 function RootNavigation() {
   const { user } = useAuth();
@@ -10,6 +11,8 @@ function RootNavigation() {
 
   useEffect(() => {
     setIsMounted(true);
+    // Initialize update checks
+    UpdateService.checkAndApplyUpdateSilently();
   }, []);
 
   useEffect(() => {

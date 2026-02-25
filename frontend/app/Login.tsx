@@ -32,7 +32,7 @@ const Style = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 30,
-    color: '#075E54' // WhatsApp green
+    color: '#075E54'
   }
 })
 

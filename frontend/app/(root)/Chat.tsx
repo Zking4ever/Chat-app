@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     FlatList,
@@ -14,6 +14,7 @@ import {
 import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
+import { Ionicons } from '@expo/vector-icons';
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
@@ -22,6 +23,7 @@ export default function ChatScreen() {
     const { convoId } = useLocalSearchParams();
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
+    const navigation = useNavigation();
     const socket = useRef<any>(null);
 
     useEffect(() => {
@@ -89,6 +91,9 @@ export default function ChatScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
                 <Text style={styles.headerTitle}>Chat #{convoId}</Text>
             </View>
 
@@ -122,7 +127,14 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#E5DDD5' },
-    header: { height: 60, backgroundColor: '#075E54', justifyContent: 'center', paddingHorizontal: 15 },
+    header: {
+        height: 60,
+        backgroundColor: '#075E54',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 15
+    },
+    backBtn: { marginRight: 15 },
     headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
     messageList: { padding: 10 },
     messageBox: {

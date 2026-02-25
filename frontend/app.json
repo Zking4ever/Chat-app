@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "aba",
+    "name": "ABA",
     "slug": "ABA",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -38,6 +38,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "updates": {
+      "url": "https://chat-app-s8dr.onrender.com/api/updates/manifest",
+      "enabled": true,
+      "checkOnLaunch": "NEVER",
+      "fallbackToCacheTimeout": 30000
     },
     "extra": {
       "router": {},

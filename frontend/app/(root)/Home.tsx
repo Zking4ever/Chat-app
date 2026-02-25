@@ -67,7 +67,7 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>WhatsApp</Text>
+        <Text style={styles.headerTitle}>ABA</Text>
       </View>
 
       <FlatList

@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 const db = require('./db');
 
@@ -21,10 +22,16 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 const contactRoutes = require('./routes/contacts');
 const chatRoutes = require('./routes/chat');
+const updateRoutes = require('./routes/updates');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/updates', updateRoutes);
+
+// Static folder for updates (bundles and assets)
+app.use('/updates', express.static(path.join(__dirname, 'public/updates')));
+
 
 // Basic sanity check
 app.get('/ping', (req, res) => res.send('pong'));
