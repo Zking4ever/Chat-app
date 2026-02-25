@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@env';
 
-// Replace with your local IP for physical device testing
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = API_BASE_URL || 'http://localhost:3000/api';
 
 const api = axios.create({
     baseURL: BASE_URL,

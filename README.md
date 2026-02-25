@@ -1,4 +1,4 @@
-# Project-App: Real-time Messaging & Chat Application
+# Real-time Messaging & Chat Application
 
 A high-performance, real-time messaging application built with React Native (Expo) and a Node.js backend. This project features instant messaging, contact synchronization, and a smooth WhatsApp-inspired UI.
 
