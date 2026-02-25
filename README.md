@@ -1,50 +1,56 @@
-# Welcome to your Expo app 👋
+# Project-App: Real-time Messaging & Chat Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A high-performance, real-time messaging application built with React Native (Expo) and a Node.js backend. This project features instant messaging, contact synchronization, and a smooth WhatsApp-inspired UI.
 
-## Get started
+## 🚀 Key Features
 
-1. Install dependencies
+- **Real-time Messaging**: Powered by Socket.io for instant delivery.
+- **WhatsApp-like UI**: Clean, intuitive interface built with React Native.
+- **Contact Detection**: Automatic synchronization and detection of contacts.
+- **Secure Authentication**: Backend-verified user sessions and phone-number-based login flows.
+- **Local Persistence**: Offline support and message history stored using SQLite.
 
-   ```bash
-   npm install
-   ```
+## 📁 Project Structure
 
-2. Start the app
+### Frontend (`/frontend`)
+- **Framework**: Expo (React Native) with File-based Routing.
+- **State Management**: React Context API (`AuthContext`) for authentication.
+- **Navigation**: Expo Router handling protected routes and layout segments.
+- **Styling**: Vanilla CSS/StyleSheet for a premium, custom feel.
 
-   ```bash
-   npx expo start
-   ```
+### Backend (`/backend`)
+- **Server**: Node.js with Express.
+- **Real-time**: Socket.io for bi-directional communication.
+- **Database**: SQLite (`messaging.db`) for efficient data storage.
+- **Authentication**: Firebase Admin SDK integration (prepared for phone auth).
 
-In the output, you'll find options to open the app in a
+## 🛠️ Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 1. Prerequisites
+- Node.js (>= 20.0.0)
+- npm or yarn
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+### 2. Setup Backend
 ```bash
-npm run reset-project
+cd backend
+npm install
+node index.js
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 3. Setup Frontend
+```bash
+cd frontend
+npm install
+npx expo start
+```
 
-## Learn more
+## 📜 Development Notes
 
-To learn more about developing your project with Expo, look at the following resources:
+- **API Layer**: Centralized in `frontend/lib/api.ts`.
+- **Types**: Shared interfaces defined in `frontend/constants/types.ts`.
+- **Layouts**: Protected routing logic is implemented in `frontend/app/_layout.tsx`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🤝 Contributing
 
-## Join the community
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
