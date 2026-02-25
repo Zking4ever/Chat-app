@@ -1,5 +1,5 @@
 import { useNavigation } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
@@ -16,15 +16,14 @@ import { useAuth } from '@/context/AuthContext';
 
 
 export default function Home() {
-  const user = useAuth();
-  const CURRENT_USER_ID = user?.id || 1;
+  const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (id: number) => {
     try {
-      const response = await chatAPI.getConversations(CURRENT_USER_ID);
+      const response = await chatAPI.getConversations(id);
       setConversations(response.data);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -32,15 +31,19 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetchConversations();
-  }, []);
+    if (!user?.id) return;
+
+    fetchConversations(user.id);
+
+  }, [user?.id]);
 
   const onRefresh = async () => {
+    if (!user?.id) return;
+
     setRefreshing(true);
-    await fetchConversations();
+    await fetchConversations(user.id);
     setRefreshing(false);
   };
-
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.convoItem}

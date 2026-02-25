@@ -11,10 +11,10 @@ import {
     View
 } from 'react-native';
 import { chatAPI, contactAPI } from '../../lib/api';
-
-const CURRENT_USER_ID = 1;
+import { useAuth } from '@/context/AuthContext';
 
 export default function ContactsScreen() {
+    const { user } = useAuth();
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigation = useNavigation();
@@ -66,7 +66,7 @@ export default function ContactsScreen() {
         }
 
         try {
-            const response = await chatAPI.getOrCreateConvo(CURRENT_USER_ID, contact.registeredUser.id);
+            const response = await chatAPI.getOrCreateConvo(user.id, contact.registeredUser.id);
             navigation.navigate('Chat' as never, { convoId: response.data.conversation_id } as never);
         } catch (error) {
             Alert.alert('Error', 'Failed to start chat');

@@ -8,24 +8,23 @@ function RootNavigation() {
   const segments = useSegments();
   const [isMounted, setIsMounted] = useState(false);
 
-  // Mark when layout is mounted
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isMounted) return; // 🚨 prevent early navigation
+    if (!isMounted) return;
 
     const inAuthScreens =
       segments[0] === 'Welcome' ||
       segments[0] === 'Login' ||
       segments[0] === 'Register';
 
-    if (!user && !inAuthScreens) {
+    if (user.id === -1 && !inAuthScreens) {
       router.replace('/Welcome');
     }
 
-    if (user && inAuthScreens) {
+    if (user.id !== -1 && inAuthScreens) {
       router.replace('/(root)/Home');
     }
   }, [user, isMounted]);

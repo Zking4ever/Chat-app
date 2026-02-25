@@ -12,12 +12,13 @@ import {
     View
 } from 'react-native';
 import { io } from 'socket.io-client';
-import { chatAPI } from '../../lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { chatAPI } from '@/lib/api';
 
-const CURRENT_USER_ID = 1;
 const SOCKET_URL = 'http://localhost:3000'; // Update for device
 
 export default function ChatScreen() {
+    const { user } = useAuth();
     const { convoId } = useLocalSearchParams();
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
@@ -29,7 +30,7 @@ export default function ChatScreen() {
 
         // Init socket
         socket.current = io(SOCKET_URL);
-        socket.current.emit('join', CURRENT_USER_ID);
+        socket.current.emit('join', user.id);
 
         socket.current.on('message', (msg: any) => {
             if (msg.conversation_id === Number(convoId)) {
@@ -56,7 +57,7 @@ export default function ChatScreen() {
 
         const msgData = {
             conversation_id: Number(convoId),
-            sender_id: CURRENT_USER_ID,
+            sender_id: user.id,
             text: inputText,
         };
 
@@ -76,7 +77,7 @@ export default function ChatScreen() {
     const renderItem = ({ item }: any) => (
         <View style={[
             styles.messageBox,
-            item.sender_id === CURRENT_USER_ID ? styles.myMessage : styles.theirMessage
+            item.sender_id === user.id ? styles.myMessage : styles.theirMessage
         ]}>
             <Text style={styles.messageText}>{item.text}</Text>
             <Text style={styles.messageTime}>
