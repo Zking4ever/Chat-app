@@ -78,7 +78,7 @@ export default function Login() {
 
   return (
     <View style={Style.container}>
-      <Text style={Style.title}>ODA</Text>
+      <Text style={Style.title}>ABA</Text>
 
       {step === 'phone' ? (
         <View style={Style.inputContainer}>
