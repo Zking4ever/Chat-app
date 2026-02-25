@@ -38,6 +38,17 @@ io.on('connection', (socket) => {
         console.log(`User ${user_id} joined their room`);
     });
 
+    socket.on('send_message', (msg) => {
+        // Message contains conversation_id, sender_id, text, etc.
+        // We need to broadcast it to the specific conversation room or specific user.
+        // For simplicity, we can broadcast to the conversation room if we join it, 
+        // but here we use user-specific rooms. 
+        // In a real app, you'd fetch conversation participants.
+        // For now, let's relay to the 'message' event.
+        console.log('Message received:', msg);
+        io.emit('message', msg); // Simple broadcast for now, filtered by frontend
+    });
+
     socket.on('disconnect', () => {
         console.log('User disconnected');
     });
