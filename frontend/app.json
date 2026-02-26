@@ -57,18 +57,13 @@
     "experiments": {
       "typedRoutes": true
     },
-    "updates": {
-      "url": "https://chat-app-s8dr.onrender.com/api/updates/manifest",
-      "enabled": true,
-      "checkOnLaunch": "NEVER",
-      "fallbackToCacheTimeout": 30000
-    },
+  
+    "owner": "astawusamsalu",
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "3f4d2a01-872b-4c31-a100-d61097c07912"
+        "projectId": "77d9f914-7250-4714-9b30-02afa7066a6d"
       }
-    },
-    "owner": "astawusamsalu"
+    }
   }
 }
