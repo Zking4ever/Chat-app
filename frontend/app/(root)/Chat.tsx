@@ -83,7 +83,6 @@ export default function ChatScreen() {
         try {
             const response = await chatAPI.sendMessage(msgData);
             const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent', message_type: 'text' };
-            setMessages(prev => [...prev, newMsg]);
             setInputText('');
 
             // Stop typing immediately on send

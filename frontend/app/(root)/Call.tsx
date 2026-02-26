@@ -68,12 +68,6 @@ export default function CallScreen() {
             }
         });
 
-        socket.current.on('incoming_call', async (data: any) => {
-            if (incoming === 'true' && data.signal) {
-                Alert.alert("Incoming Call", `You are receiving a call from ${data.name || 'Unknown User'}`);
-            }
-        });
-
         socket.current.on('ice_candidate', (candidate: any) => {
             webRTCService.current?.addIceCandidate(candidate);
         });
@@ -119,12 +113,7 @@ export default function CallScreen() {
     };
 
     const endCall = () => {
-        if (incoming === 'true' && callStatus === 'Incoming Call...') {
-            socket.current.emit('reject_call', { to: participantId });
-            saveCallLog('Missed');
-        } else {
-            saveCallLog('Finished');
-        }
+        saveCallLog('Finished');
         webRTCService.current?.close();
         router.back();
     };
