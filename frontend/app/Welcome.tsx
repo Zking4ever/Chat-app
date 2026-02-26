@@ -22,18 +22,52 @@ import Animated, {
   interpolateColor
 } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
-import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
 const SLIDES = [
-  { id: '1', key: 'slide1', bg: '#FFC1CC', icon: '❤️' },
-  { id: '2', key: 'slide2', bg: '#FF8DA1', icon: '🌹' },
-  { id: '3', key: 'slide3', bg: '#d2a9b6', icon: '😘' },
-  { id: '4', key: 'slide4', bg: '#9C27B0', icon: '✨' },
-  { id: '5', key: 'slide5', bg: '#673AB7', icon: '💝' },
+  { id: '1', key: 'slide1', bg: '#FFC1CC', icon: '❤️', image: require('../assets/images/image1.jpg'), offset: { left: -50, top: 0 } },
+  { id: '2', key: 'slide2', bg: '#d78dff90', icon: '🌹', image: require('../assets/images/image2.jpg'), offset: { left: -50, top: 0 } },
+  { id: '3', key: 'slide3', bg: '#d2a9b6', icon: '😘', image: require('../assets/images/image3.jpg'), offset: { left: -50, top: 0 } },
+  { id: '4', key: 'slide4', bg: '#9C27B0', icon: '✨', image: require('../assets/images/image4.jpg'), offset: { left: -30, top: -10 } },
+  { id: '5', key: 'slide5', bg: '#673AB7', icon: '💝', image: require('../assets/images/bg5.jpg'), offset: { left: -10, top: 0 } },
 ];
+
+const BackgroundLayer = ({ scrollX }: { scrollX: Animated.SharedValue<number> }) => {
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      {SLIDES.map((slide, index) => {
+        const animatedStyle = useAnimatedStyle(() => {
+          const opacity = interpolate(
+            scrollX.value,
+            [(index - 0.7) * width, index * width, (index + 0.7) * width],
+            [0, 1, 0],
+            Extrapolate.CLAMP
+          );
+
+          return {
+            opacity: opacity * 0.9,
+            left: `${slide.offset.left}%`,
+            top: `${slide.offset.top}%`,
+            width: '200%',
+            height: '110%',
+            position: 'absolute'
+          };
+        });
+
+        return (
+          <Animated.Image
+            key={slide.id}
+            source={slide.image}
+            style={animatedStyle}
+            resizeMode="cover"
+          />
+        );
+      })}
+    </View>
+  );
+};
 
 const FloatingHeart = ({ delay = 0 }) => {
   const tx = useSharedValue(Math.random() * width);
@@ -177,13 +211,6 @@ export default function Welcome() {
     return { backgroundColor };
   });
 
-  const bgImageStyle = useAnimatedStyle(() => {
-    return {
-      opacity: 0.9,
-      left:'-50%'
-    };
-  });
-
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
       setCurrentIndex(viewableItems[0].index);
@@ -211,11 +238,7 @@ export default function Welcome() {
     <Animated.View style={[styles.container, containerAnimatedStyle]}>
       <StatusBar barStyle="light-content" />
 
-      <Animated.Image
-        source={require('../assets/images/image2.jpg')}
-        style={[StyleSheet.absoluteFill, bgImageStyle]}
-        resizeMode="cover"
-      />
+      <BackgroundLayer scrollX={scrollX} />
 
       {[...Array(15)].map((_, i) => (
         <FloatingHeart key={i} delay={i * 400} />
