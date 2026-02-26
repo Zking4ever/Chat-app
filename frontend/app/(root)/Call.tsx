@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { WebRTCService } from '@/src/services/WebRTCService';
+import SocketService from '@/src/services/SocketService';
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
@@ -22,7 +23,8 @@ export default function CallScreen() {
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
-        socket.current = io(SOCKET_URL);
+        // socket.current = io(SOCKET_URL);
+        socket.current = SocketService.getSocket(user.id);
         socket.current.emit('join', user.id);
 
         webRTCService.current = new WebRTCService();
@@ -52,6 +54,7 @@ export default function CallScreen() {
                     callType: callType || 'audio',
                     signalData: offer
                 });
+             console.log(`Starting ${callType} call...`);
             }
         };
 
@@ -66,8 +69,7 @@ export default function CallScreen() {
 
         socket.current.on('incoming_call', async (data: any) => {
             if (incoming === 'true' && data.signal) {
-                // This would typically be handled before navigating to this screen,
-                // but we keep it for consistency.
+                Alert.alert("Incoming Call", `You are receiving a call from ${data.name || 'Unknown User'}`);
             }
         });
 
@@ -146,7 +148,7 @@ export default function CallScreen() {
                     <View style={styles.avatarLarge} />
                 )}
                 <Text style={styles.callerName}>
-                    {incoming === 'true' ? (fromName || 'Incoming') : 'Outgoing Call'}
+                    <Text>{incoming === 'true' ? (fromName || 'Incoming') : 'Outgoing Call'}</Text>
                 </Text>
                 <Text style={styles.callStatus}>{callStatus}</Text>
             </View>

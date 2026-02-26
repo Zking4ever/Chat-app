@@ -100,7 +100,6 @@ export default function ChatScreen() {
 
     const startCall = (type: 'audio' | 'video') => {
         // This will navigate to a CallScreen
-        console.log(`Starting ${type} call...`);
         navigation.navigate('Call' as never, {
             convoId,
             callType: type,

@@ -11,15 +11,16 @@ import {
 } from 'react-native';
 import { chatAPI } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { io } from 'socket.io-client';
+import SocketService from '@/src/services/SocketService';
 
 // Dummy user ID for development - in real app, get from storage/auth
 
 
 export default function Home() {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Record<number, boolean>>({});
   const navigation = useNavigation();
 
   const fetchConversations = async (id: number) => {
@@ -36,19 +37,46 @@ export default function Home() {
 
     fetchConversations(user.id);
 
-    const socket = io(process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000');
-    socket.emit('join', user.id);
+    const socket = SocketService.getSocket(user.id);
 
-    socket.on('user_status_changed', ({ user_id, is_online }) => {
+    const handleStatusChange = ({ user_id, is_online }: any) => {
       setConversations((prev: any) =>
         prev.map((c: any) =>
           c.participant_id === user_id ? { ...c, is_online } : c
         )
       );
-    });
+    };
+
+    const handleMessage = (msg: any) => {
+      setConversations((prev: any) => {
+        const index = prev.findIndex((c: any) => c.id === msg.convo_id);
+        if (index === -1) {
+          fetchConversations(user.id);
+          return prev;
+        }
+        const updatedConvo = {
+          ...prev[index],
+          last_message: msg.content,
+          last_message_time: msg.created_at
+        };
+        const newList = [...prev];
+        newList.splice(index, 1);
+        return [updatedConvo, ...newList];
+      });
+    };
+
+    const handleTypingStatus = ({ convoId, isTyping }: any) => {
+      setTypingUsers(prev => ({ ...prev, [convoId]: isTyping }));
+    };
+
+    socket.on('user_status_changed', handleStatusChange);
+    socket.on('message', handleMessage);
+    socket.on('typing_status', handleTypingStatus);
 
     return () => {
-      socket.disconnect();
+      socket.off('user_status_changed', handleStatusChange);
+      socket.off('message', handleMessage);
+      socket.off('typing_status', handleTypingStatus);
     };
   }, [user?.id]);
 
@@ -63,7 +91,7 @@ export default function Home() {
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.convoItem}
-      onPress={() => navigation.navigate('Chat' as never, { convoId: item.id } as never)}
+      onPress={() => navigation.navigate('Chat' as any, { convoId: item.id })}
     >
       <View style={styles.avatarPlaceholder}>
         {item.is_online && <View style={styles.onlineBadge} />}
@@ -75,8 +103,11 @@ export default function Home() {
             {item.last_message_time ? new Date(item.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </Text>
         </View>
-        <Text style={styles.lastMessage} numberOfLines={1}>
-          {item.last_message || 'No messages yet'}
+        <Text
+          style={[styles.lastMessage, typingUsers[item.id] && styles.typingText]}
+          numberOfLines={1}
+        >
+          {typingUsers[item.id] ? 'Typing...' : (item.last_message || 'No messages yet')}
         </Text>
       </View>
     </TouchableOpacity>
@@ -173,6 +204,11 @@ const styles = StyleSheet.create({
   lastMessage: {
     fontSize: 14,
     color: '#666',
+  },
+  typingText: {
+    color: '#25D366',
+    fontStyle: 'italic',
+    fontWeight: '500',
   },
   emptyContainer: {
     padding: 50,
