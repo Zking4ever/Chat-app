@@ -6,7 +6,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from '@/context/AuthContext';
 import { WebRTCService } from '@/src/services/WebRTCService';
 
-const SOCKET_URL = 'http://localhost:3000';
+const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 
 export default function CallScreen() {
     const { user } = useAuth();

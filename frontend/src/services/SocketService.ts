@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = 'http://localhost:3000'; // Should be from env in production
+const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000'; // Should be from env in production
 
 class SocketService {
     private socket: Socket | null = null;
