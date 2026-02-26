@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { chatAPI } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { io } from 'socket.io-client';
 
 // Dummy user ID for development - in real app, get from storage/auth
 
@@ -35,6 +36,20 @@ export default function Home() {
 
     fetchConversations(user.id);
 
+    const socket = io(process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000');
+    socket.emit('join', user.id);
+
+    socket.on('user_status_changed', ({ user_id, is_online }) => {
+      setConversations((prev: any) =>
+        prev.map((c: any) =>
+          c.participant_id === user_id ? { ...c, is_online } : c
+        )
+      );
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [user?.id]);
 
   const onRefresh = async () => {
@@ -44,12 +59,15 @@ export default function Home() {
     await fetchConversations(user.id);
     setRefreshing(false);
   };
+
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.convoItem}
       onPress={() => navigation.navigate('Chat' as never, { convoId: item.id } as never)}
     >
-      <View style={styles.avatarPlaceholder} />
+      <View style={styles.avatarPlaceholder}>
+        {item.is_online && <View style={styles.onlineBadge} />}
+      </View>
       <View style={styles.convoDetails}>
         <View style={styles.convoHeader}>
           <Text style={styles.convoName}>{item.name || `Chat #${item.id}`}</Text>
@@ -123,6 +141,18 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     backgroundColor: '#ccc',
     marginRight: 15,
+    position: 'relative',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#44b700',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   convoDetails: {
     flex: 1,

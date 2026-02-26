@@ -26,6 +26,10 @@ export default function ChatScreen() {
     const navigation = useNavigation();
     const socket = useRef<any>(null);
 
+    const [isTyping, setIsTyping] = useState(false);
+    const [typingUser, setTypingUser] = useState('');
+    const typingTimeoutRef = useRef<any>(null);
+
     useEffect(() => {
         // Fetch history
         fetchMessages();
@@ -40,10 +44,30 @@ export default function ChatScreen() {
             }
         });
 
+        socket.current.on('typing_status', (data: any) => {
+            if (data.convoId === Number(convoId) && data.userId !== user.id) {
+                setIsTyping(data.isTyping);
+                setTypingUser(data.userName);
+            }
+        });
+
         return () => {
             socket.current.disconnect();
         };
     }, [convoId]);
+
+    const handleTextInput = (text: string) => {
+        setInputText(text);
+
+        // Emit typing status
+        socket.current.emit('typing', { convoId: Number(convoId), userId: user.id, userName: user.name });
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
+        }, 2000);
+    };
 
     const fetchMessages = async () => {
         try {
@@ -69,11 +93,20 @@ export default function ChatScreen() {
             setMessages(prev => [...prev, newMsg] as any);
             setInputText('');
 
+            // Stop typing immediately on send
+            socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
+
             // Notify via socket (the server should ideally handle broadcasting)
             socket.current.emit('send_message', newMsg);
         } catch (error) {
             console.error('Send failed', error);
         }
+    };
+
+    const startCall = (type: 'audio' | 'video') => {
+        // This will navigate to a CallScreen (to be created)
+        console.log(`Starting ${type} call...`);
+        navigation.navigate('Call' as never, { convoId, callType: type, incoming: 'false' } as never);
     };
 
     const renderItem = ({ item }: any) => (
@@ -91,10 +124,23 @@ export default function ChatScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Chat #{convoId}</Text>
+                <View style={styles.headerLeft}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                    <View>
+                        <Text style={styles.headerTitle}>Chat #{convoId}</Text>
+                        {isTyping && <Text style={styles.typingIndicatorText}>{typingUser} is typing...</Text>}
+                    </View>
+                </View>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={() => startCall('audio')} style={styles.actionBtn}>
+                        <Ionicons name="call" size={22} color="#fff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => startCall('video')} style={styles.actionBtn}>
+                        <Ionicons name="videocam" size={22} color="#fff" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <FlatList
@@ -113,11 +159,11 @@ export default function ChatScreen() {
                         style={styles.input}
                         placeholder="Type a message"
                         value={inputText}
-                        onChangeText={setInputText}
+                        onChangeText={handleTextInput}
                         multiline
                     />
                     <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-                        <Text style={styles.sendBtnText}>{'>'}</Text>
+                        <Ionicons name="send" size={20} color="#fff" />
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -132,7 +178,24 @@ const styles = StyleSheet.create({
         backgroundColor: '#075E54',
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         paddingHorizontal: 15
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    actionBtn: {
+        marginLeft: 20,
+    },
+    typingIndicatorText: {
+        color: '#eee',
+        fontSize: 12,
+        fontStyle: 'italic',
     },
     backBtn: { marginRight: 15 },
     headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },

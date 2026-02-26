@@ -37,27 +37,76 @@ app.use('/updates', express.static(path.join(__dirname, 'public/updates')));
 app.get('/ping', (req, res) => res.send('pong'));
 
 // Socket.io connection logic
+const onlineUsers = new Map(); // user_id -> socket_id
+
 io.on('connection', (socket) => {
     console.log('A user connected:', socket.id);
 
     socket.on('join', (user_id) => {
         socket.join(`user_${user_id}`);
-        console.log(`User ${user_id} joined their room`);
+        onlineUsers.set(user_id, socket.id);
+
+        // Update DB status
+        try {
+            db.prepare('UPDATE Users SET is_online = 1, last_seen = CURRENT_TIMESTAMP WHERE id = ?').run(user_id);
+            // Notify others
+            io.emit('user_status_changed', { user_id, is_online: 1 });
+        } catch (err) {
+            console.error('Failed to update online status', err);
+        }
+
+        console.log(`User ${user_id} joined their room and is online`);
     });
 
     socket.on('send_message', (msg) => {
-        // Message contains conversation_id, sender_id, text, etc.
-        // We need to broadcast it to the specific conversation room or specific user.
-        // For simplicity, we can broadcast to the conversation room if we join it, 
-        // but here we use user-specific rooms. 
-        // In a real app, you'd fetch conversation participants.
-        // For now, let's relay to the 'message' event.
         console.log('Message received:', msg);
-        io.emit('message', msg); // Simple broadcast for now, filtered by frontend
+        io.emit('message', msg);
+    });
+
+    socket.on('typing', ({ convoId, userId, userName }) => {
+        socket.broadcast.emit('typing_status', { convoId, userId, userName, isTyping: true });
+    });
+
+    socket.on('stop_typing', ({ convoId, userId }) => {
+        socket.broadcast.emit('typing_status', { convoId, userId, isTyping: false });
+    });
+
+    // Call Signaling
+    socket.on('call_user', ({ userToCall, signalData, from, name, callType }) => {
+        io.to(`user_${userToCall}`).emit('incoming_call', { signal: signalData, from, name, callType });
+    });
+
+    socket.on('answer_call', (data) => {
+        io.to(`user_${data.to}`).emit('call_accepted', data.signal);
+    });
+
+    socket.on('reject_call', ({ to }) => {
+        io.to(`user_${to}`).emit('call_rejected');
+    });
+
+    socket.on('ice_candidate', ({ to, candidate }) => {
+        io.to(`user_${to}`).emit('ice_candidate', candidate);
     });
 
     socket.on('disconnect', () => {
-        console.log('User disconnected');
+        let disconnectedUserId = null;
+        for (const [userId, socketId] of onlineUsers.entries()) {
+            if (socketId === socket.id) {
+                disconnectedUserId = userId;
+                break;
+            }
+        }
+
+        if (disconnectedUserId) {
+            onlineUsers.delete(disconnectedUserId);
+            try {
+                db.prepare('UPDATE Users SET is_online = 0, last_seen = CURRENT_TIMESTAMP WHERE id = ?').run(disconnectedUserId);
+                io.emit('user_status_changed', { user_id: disconnectedUserId, is_online: 0 });
+            } catch (err) {
+                console.error('Failed to update offline status', err);
+            }
+            console.log(`User ${disconnectedUserId} disconnected`);
+        }
     });
 });
 
