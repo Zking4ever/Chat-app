@@ -3,6 +3,7 @@ import { Alert, StyleSheet, Text, TextInput, View, TouchableOpacity, ActivityInd
 import { authAPI } from '../lib/api'
 import { useAuth } from '@/context/AuthContext'
 import { useTheme } from '@/context/ThemeContext'
+import { LinearGradient } from 'expo-linear-gradient'
 
 export default function Login() {
   const { setUser } = useAuth();
@@ -48,7 +49,7 @@ export default function Login() {
           <Text style={[styles.label, { color: colors.text }]}>Phone Number</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.inputBorder }]}
-            placeholder="+1234567890"
+            placeholder="+251----------"
             placeholderTextColor={colors.textSecondary}
             keyboardType="phone-pad"
             value={phoneNumber}
@@ -74,7 +75,7 @@ export default function Login() {
           <Text style={[styles.label, { color: colors.text }]}>Enter OTP</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.inputBorder }]}
-            placeholder="123456"
+            placeholder="------"
             placeholderTextColor={colors.textSecondary}
             keyboardType="number-pad"
             value={otp}
