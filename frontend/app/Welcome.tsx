@@ -1,5 +1,4 @@
-import { useRouter } from 'expo-router';
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -7,93 +6,126 @@ import {
   Dimensions,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
+  Platform,
   StatusBar
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   interpolate,
   Extrapolate,
-  interpolateColor,
   useAnimatedScrollHandler,
-  FadeInDown,
-  FadeInUp
+  withRepeat,
+  withTiming,
+  withDelay,
+  interpolateColor
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
+import { BlurView } from 'expo-blur';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 
-
 const SLIDES = [
-  {
-    id: '1',
-    title: 'Fast Messaging',
-    description: 'Experience lightning-fast delivery for all your messages anywhere, anytime.',
-    backgroundColor: '#075E54',
-    icon: '🚀'
-  },
-  {
-    id: '2',
-    title: 'Secure & Private',
-    description: 'Your conversations are protected with end-to-end encryption for maximum privacy.',
-    backgroundColor: '#128C7E',
-    icon: '🔒'
-  },
-  {
-    id: '3',
-    title: 'Voice & Video',
-    description: 'High-quality calls to stay connected with friends and family across the globe.',
-    backgroundColor: '#25D366',
-    icon: '📞'
-  },
-  {
-    id: '4',
-    title: 'Start Chatting',
-    description: 'Join ABA today and start a new era of communication.',
-    backgroundColor: '#34B7F1',
-    icon: '✨'
-  }
+  { id: '1', key: 'slide1', bg: '#FFC1CC', icon: '❤️' },
+  { id: '2', key: 'slide2', bg: '#FF8DA1', icon: '🌹' },
+  { id: '3', key: 'slide3', bg: '#d2a9b6', icon: '😘' },
+  { id: '4', key: 'slide4', bg: '#9C27B0', icon: '✨' },
+  { id: '5', key: 'slide5', bg: '#673AB7', icon: '💝' },
 ];
 
-const SlideItem = ({ item, index, scrollX }: any) => {
-  const iconAnimatedStyle = useAnimatedStyle(() => {
-    const translateX = interpolate(
-      scrollX.value,
-      [(index - 1) * width, index * width, (index + 1) * width],
-      [width * 0.4, 0, -width * 0.4],
-      Extrapolate.CLAMP
+const FloatingHeart = ({ delay = 0 }) => {
+  const tx = useSharedValue(Math.random() * width);
+  const ty = useSharedValue(height + 100);
+  const scale = useSharedValue(Math.random() * 0.5 + 0.5);
+  const opacity = useSharedValue(0.8);
+
+  const style = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: tx.value,
+    top: ty.value,
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  useEffect(() => {
+    ty.value = withRepeat(
+      withDelay(delay, withTiming(-100, { duration: 6000 + Math.random() * 2000 })),
+      -1,
+      false
     );
+    tx.value = withRepeat(
+      withTiming(tx.value + (Math.random() * 100 - 50), { duration: 2000 }),
+      -1,
+      true
+    );
+  }, []);
+
+  return (
+    <Animated.View style={style}>
+      <Text style={{ fontSize: 24 }}>❤️</Text>
+    </Animated.View>
+  );
+};
+
+const SlideItem = ({ item, index, scrollX }: any) => {
+  const { t } = useTranslation();
+
+  const iconStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       scrollX.value,
       [(index - 1) * width, index * width, (index + 1) * width],
-      [0.6, 1, 0.6],
+      [0.3, 1.2, 0.3],
+      Extrapolate.CLAMP
+    );
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [0, 1, 0],
+      Extrapolate.CLAMP
+    );
+    const rotate = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [-30, 0, 30],
       Extrapolate.CLAMP
     );
     return {
-      transform: [{ translateX }, { scale }],
+      opacity,
+      transform: [
+        { scale },
+        { rotate: `${rotate}deg` }
+      ]
     };
+  });
+
+  const textStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [0, 1, 0],
+      Extrapolate.CLAMP
+    );
+    const translateY = interpolate(
+      scrollX.value,
+      [(index - 1) * width, index * width, (index + 1) * width],
+      [100, 0, -100],
+      Extrapolate.CLAMP
+    );
+    return { opacity, transform: [{ translateY }] };
   });
 
   return (
     <View style={styles.slide}>
-      <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
-        <Text style={styles.iconText}>{item.icon}</Text>
+      <Animated.View style={[iconStyle]}>
+        <Text>{item.icon}</Text>
       </Animated.View>
-      <View style={styles.textContainer}>
-        <Animated.Text
-          entering={FadeInDown.delay(200).duration(800)}
-          style={styles.title}
-        >
-          {item.title}
-        </Animated.Text>
-        <Animated.Text
-          entering={FadeInUp.delay(400).duration(800)}
-          style={styles.description}
-        >
-          {item.description}
-        </Animated.Text>
-      </View>
+      <Animated.View style={[styles.textContainer, textStyle]}>
+        <Text style={styles.romanticText}>
+          {t(`welcome.slides.${item.key}`)}
+        </Text>
+      </Animated.View>
     </View>
   );
 };
@@ -124,6 +156,7 @@ const PaginationDot = ({ index, scrollX }: any) => {
 export default function Welcome() {
   const router = useRouter();
   const { completeOnboarding } = useAuth();
+  const { t, i18n } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const scrollX = useSharedValue(0);
@@ -135,16 +168,20 @@ export default function Welcome() {
     },
   });
 
-  const backgroundColors = useMemo(() => SLIDES.map(s => s.backgroundColor), []);
-  const scrollRange = useMemo(() => SLIDES.map((_, i) => i * width), []);
-
   const containerAnimatedStyle = useAnimatedStyle(() => {
     const backgroundColor = interpolateColor(
       scrollX.value,
-      scrollRange,
-      backgroundColors
+      SLIDES.map((_, i) => i * width),
+      SLIDES.map((s) => s.bg)
     );
     return { backgroundColor };
+  });
+
+  const bgImageStyle = useAnimatedStyle(() => {
+    return {
+      opacity: 0.9,
+      left:'-50%'
+    };
   });
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
@@ -173,6 +210,17 @@ export default function Welcome() {
   return (
     <Animated.View style={[styles.container, containerAnimatedStyle]}>
       <StatusBar barStyle="light-content" />
+
+      <Animated.Image
+        source={require('../assets/images/image2.jpg')}
+        style={[StyleSheet.absoluteFill, bgImageStyle]}
+        resizeMode="cover"
+      />
+
+      {[...Array(15)].map((_, i) => (
+        <FloatingHeart key={i} delay={i * 400} />
+      ))}
+
       <Animated.FlatList
         ref={flatListRef}
         data={SLIDES}
@@ -201,16 +249,20 @@ export default function Welcome() {
           onPress={handleNext}
           activeOpacity={0.8}
         >
-          <Animated.Text style={styles.buttonText}>
-            {currentIndex === SLIDES.length - 1 ? 'Get Started' : 'Next'}
-          </Animated.Text>
+          <Text style={styles.buttonText}>
+            {currentIndex === SLIDES.length - 1 ? t('welcome.getStarted') : t('welcome.next')}
+          </Text>
         </TouchableOpacity>
 
-        {currentIndex < SLIDES.length - 1 && (
-          <TouchableOpacity onPress={handleGetStarted} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Skip</Text>
+        <View style={styles.langContainer}>
+          <TouchableOpacity onPress={() => i18n.changeLanguage('en')}>
+            <Text style={[styles.langText, i18n.language === 'en' && styles.activeLang]}>EN</Text>
           </TouchableOpacity>
-        )}
+          <Text style={styles.langSeparator}>|</Text>
+          <TouchableOpacity onPress={() => i18n.changeLanguage('am')}>
+            <Text style={[styles.langText, i18n.language === 'am' && styles.activeLang]}>አማ</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Animated.View>
   );
@@ -225,38 +277,30 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
+    padding: 30,
   },
-  iconContainer: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  slideImage: {
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: 20,
     marginBottom: 40,
-  },
-  iconText: {
-    fontSize: 80,
+    borderWidth: 5,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   textContainer: {
     alignItems: 'center',
-    marginTop: 20,
+    width: '100%',
   },
-  title: {
-    fontSize: 34,
-    fontWeight: '900',
+  romanticText: {
+    fontSize: 32,
     color: '#fff',
     textAlign: 'center',
-    marginBottom: 15,
-    letterSpacing: 0.5,
-  },
-  description: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-    lineHeight: 28,
-    paddingHorizontal: 20,
+    lineHeight: 45,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 10,
   },
   footer: {
     position: 'absolute',
@@ -278,33 +322,47 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   button: {
-    width: width * 0.85,
+    width: width * 0.8,
     height: 64,
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 15,
-    // Modern shadow
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+    marginBottom: 20,
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+    elevation: 10,
   },
   buttonText: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#075E54',
+    color: '#E91E63',
   },
-  skipBtn: {
-    padding: 15,
+  langContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  skipText: {
+  langText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    opacity: 0.8,
+    opacity: 0.6,
+  },
+  activeLang: {
+    opacity: 1,
+    textDecorationLine: 'underline',
+  },
+  langSeparator: {
+    color: '#fff',
+    marginHorizontal: 10,
+    opacity: 0.5,
   }
 });
 

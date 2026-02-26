@@ -1,26 +1,29 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const romanticPink = '#FF8DA1';
+const deepRose = '#E91E63';
+const softLavender = '#F3E5F5';
+const warmBeige = '#FFF5F5';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#4A148C',
+    background: warmBeige,
+    tint: deepRose,
+    icon: deepRose,
+    tabIconDefault: '#AD1457',
+    tabIconSelected: deepRose,
+    primaryGradient: ['#FF8DA1', '#E91E63'],
+    bubbleSent: deepRose,
+    bubbleReceived: '#FFF',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: '#FCE4EC',
+    background: '#2D0A14',
+    tint: romanticPink,
+    icon: romanticPink,
+    tabIconDefault: '#880E4F',
+    tabIconSelected: romanticPink,
+    primaryGradient: ['#880E4F', '#4A148C'],
+    bubbleSent: '#AD1457',
+    bubbleReceived: '#4A148C',
   },
 };

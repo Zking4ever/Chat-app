@@ -8,6 +8,7 @@ import UpdateService from '@/src/services/UpdateService';
 import SocketService from '@/src/services/SocketService';
 
 import CallNotification from '@/components/CallNotification';
+import '@/src/i18n';
 
 function RootNavigation() {
   const { user, hasSeenOnboarding } = useAuth();

@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import {
     FlatList, KeyboardAvoidingView, Platform, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
@@ -7,6 +8,8 @@ import SocketService from '@/src/services/SocketService';
 import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
+
+import { Colors } from '@/constants/Colors';
 
 export default function ChatScreen() {
     const { user } = useAuth();
@@ -19,6 +22,28 @@ export default function ChatScreen() {
     const [isTyping, setIsTyping] = useState(false);
     const [typingUser, setTypingUser] = useState('');
     const typingTimeoutRef = useRef<any>(null);
+
+    const heartOpacity = useSharedValue(0);
+    const heartScale = useSharedValue(0);
+    const heartY = useSharedValue(0);
+
+    const heartStyle = useAnimatedStyle(() => ({
+        position: 'absolute',
+        right: 60,
+        bottom: 80,
+        opacity: heartOpacity.value,
+        transform: [{ scale: heartScale.value }, { translateY: heartY.value }],
+    }));
+
+    const triggerHeart = () => {
+        heartOpacity.value = 1;
+        heartScale.value = withSpring(1.5);
+        heartY.value = withTiming(-150, { duration: 1000 }, () => {
+            heartOpacity.value = withTiming(0);
+            heartScale.value = 0;
+            heartY.value = 0;
+        });
+    };
 
     useEffect(() => {
         // Fetch history
@@ -74,6 +99,8 @@ export default function ChatScreen() {
     const handleSend = async () => {
         if (!inputText.trim()) return;
 
+        triggerHeart();
+
         const msgData = {
             conversation_id: Number(convoId),
             sender_id: user.id,
@@ -88,7 +115,7 @@ export default function ChatScreen() {
             // Stop typing immediately on send
             socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
 
-            // Notify via socket (the server should ideally handle broadcasting)
+            // Notify via socket
             socket.current.emit('send_message', newMsg);
         } catch (error) {
             console.error('Send failed', error);
@@ -117,7 +144,7 @@ export default function ChatScreen() {
                 <View style={styles.callLogContainer}>
                     <View style={styles.callLogBox}>
                         <View style={styles.callLogIcon}>
-                            <Ionicons name={iconName as any} size={20} color="#555" />
+                            <Ionicons name={iconName as any} size={20} color={Colors.light.tint} />
                         </View>
                         <View>
                             <Text style={styles.callLogText}>{item.text}</Text>
@@ -173,14 +200,18 @@ export default function ChatScreen() {
                 contentContainerStyle={styles.messageList}
             />
 
+            <Animated.View style={heartStyle}>
+                <Text style={{ fontSize: 40 }}>❤️</Text>
+            </Animated.View>
+
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={90}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
                 <View style={styles.inputArea}>
                     <TextInput
                         style={styles.input}
-                        placeholder="Type a message"
+                        placeholder="Type a message..."
                         value={inputText}
                         onChangeText={handleTextInput}
                         multiline
@@ -195,10 +226,10 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#E5DDD5' },
+    container: { flex: 1, backgroundColor: Colors.light.background },
     header: {
         height: 60,
-        backgroundColor: '#075E54',
+        backgroundColor: Colors.light.tint,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -226,43 +257,55 @@ const styles = StyleSheet.create({
     messageBox: {
         maxWidth: '80%',
         padding: 10,
-        borderRadius: 8,
+        borderRadius: 15,
         marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 1,
     },
     myMessage: {
         alignSelf: 'flex-end',
-        backgroundColor: '#DCF8C6',
+        backgroundColor: Colors.light.bubbleSent,
+        borderBottomRightRadius: 2,
     },
     theirMessage: {
         alignSelf: 'flex-start',
-        backgroundColor: '#FFF',
+        backgroundColor: Colors.light.bubbleReceived,
+        borderBottomLeftRadius: 2,
     },
-    messageText: { fontSize: 16 },
+    messageText: { fontSize: 16, color: '#000' },
     messageTime: { fontSize: 10, color: '#888', alignSelf: 'flex-end', marginTop: 5 },
     inputArea: {
         flexDirection: 'row',
         padding: 10,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.light.background,
         alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.05)',
     },
     input: {
         flex: 1,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 20,
+        backgroundColor: '#fff',
+        borderRadius: 25,
         paddingHorizontal: 15,
-        paddingVertical: 8,
+        paddingVertical: 10,
         maxHeight: 100,
+        fontSize: 16,
+        borderWidth: 1,
+        borderColor: '#eee',
     },
     sendBtn: {
-        width: 45,
-        height: 45,
-        borderRadius: 22.5,
-        backgroundColor: '#075E54',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: Colors.light.tint,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 10,
+        elevation: 3,
     },
-    sendBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
     callLogContainer: {
         alignItems: 'center',
         marginVertical: 15,
@@ -270,20 +313,20 @@ const styles = StyleSheet.create({
     callLogBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.7)',
+        backgroundColor: 'rgba(255,255,255,0.9)',
         paddingHorizontal: 15,
-        paddingVertical: 8,
-        borderRadius: 15,
+        paddingVertical: 10,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
+        borderColor: Colors.light.tint,
     },
     callLogIcon: {
         marginRight: 10,
     },
     callLogText: {
         fontSize: 14,
-        color: '#333',
-        fontWeight: '500',
+        color: Colors.light.text,
+        fontWeight: 'bold',
     },
     callLogSubtext: {
         fontSize: 11,

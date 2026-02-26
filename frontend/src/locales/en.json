@@ -1,0 +1,25 @@
+{
+    "welcome": {
+        "slides": {
+            "slide1": "Do you know? who is the lucky man alive? It’s me aleme, because I have you.",
+            "slide2": "I am so happy to have you in my life.",
+            "slide3": "Naye, I love you so much that I couldn't express it just I get speechless when it comes to you.",
+            "slide4": "You’re my world. NANCHOYE.",
+            "slide5": "I loved you yesterday, love you today, and will love you forever."
+        },
+        "getStarted": "Get Started ❤️",
+        "next": "Next",
+        "skip": "Skip"
+    },
+    "auth": {
+        "login": "Login",
+        "register": "Register",
+        "phone": "Phone Number",
+        "password": "Password"
+    },
+    "settings": {
+        "language": "Language",
+        "english": "English",
+        "amharic": "Amharic"
+    }
+}
