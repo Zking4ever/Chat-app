@@ -11,11 +11,13 @@ const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:300
 
 export default function CallScreen() {
     const { user } = useAuth();
-    const { convoId, callType, incoming, fromName, signal } = useLocalSearchParams();
+    const { convoId, participantId, callType, incoming, fromName, signal } = useLocalSearchParams();
     const router = useRouter();
     const [callStatus, setCallStatus] = useState(incoming === 'true' ? 'Incoming Call...' : 'Calling...');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
     const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+    const [duration, setDuration] = useState(0);
+    const durationInterval = useRef<any>(null);
 
     const socket = useRef<any>(null);
     const webRTCService = useRef<WebRTCService | null>(null);
@@ -23,9 +25,7 @@ export default function CallScreen() {
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
-        // socket.current = io(SOCKET_URL);
         socket.current = SocketService.getSocket(user.id);
-        socket.current.emit('join', user.id);
 
         webRTCService.current = new WebRTCService();
 
@@ -36,7 +36,7 @@ export default function CallScreen() {
 
         webRTCService.current.onIceCandidate((candidate) => {
             socket.current.emit('ice_candidate', {
-                to: convoId,
+                to: incoming === 'true' ? participantId : (participantId || convoId),
                 candidate: candidate
             });
         });
@@ -48,13 +48,13 @@ export default function CallScreen() {
             if (incoming !== 'true') {
                 const offer = await webRTCService.current?.createOffer();
                 socket.current.emit('call_user', {
-                    userToCall: convoId,
+                    userToCall: participantId || convoId,
                     from: user.id,
                     name: user.name || 'User ' + user.id,
                     callType: callType || 'audio',
                     signalData: offer
                 });
-             console.log(`Starting ${callType} call...`);
+                console.log(`Starting ${callType} call...`);
             }
         };
 
@@ -62,6 +62,7 @@ export default function CallScreen() {
 
         socket.current.on('call_accepted', async (signal: any) => {
             setCallStatus('Connected');
+            startTimer();
             if (signal) {
                 await webRTCService.current?.handleAnswer(signal);
             }
@@ -79,29 +80,50 @@ export default function CallScreen() {
 
         socket.current.on('call_rejected', () => {
             setCallStatus('Call Rejected');
+            saveCallLog('Missed');
             setTimeout(() => router.back(), 2000);
         });
 
         return () => {
+            stopTimer();
             webRTCService.current?.close();
-            socket.current.disconnect();
         };
     }, []);
 
-    useEffect(() => {
-        if (Platform.OS === 'web') {
-            if (localVideoRef.current && localStream) {
-                localVideoRef.current.srcObject = localStream;
-            }
-            if (remoteVideoRef.current && remoteStream) {
-                remoteVideoRef.current.srcObject = remoteStream;
-            }
-        }
-    }, [localStream, remoteStream]);
+    const startTimer = () => {
+        durationInterval.current = setInterval(() => {
+            setDuration(prev => prev + 1);
+        }, 1000);
+    };
+
+    const stopTimer = () => {
+        if (durationInterval.current) clearInterval(durationInterval.current);
+    };
+
+    const formatDuration = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const saveCallLog = (status: string) => {
+        const finalDuration = formatDuration(duration);
+        socket.current.emit('save_call_log', {
+            conversation_id: Number(convoId),
+            sender_id: user.id,
+            text: status === 'Missed' ? `Missed ${callType} call` : `${callType === 'video' ? 'Video' : 'Audio'} call`,
+            callType,
+            duration: status === 'Missed' ? null : finalDuration,
+            status
+        });
+    };
 
     const endCall = () => {
         if (incoming === 'true' && callStatus === 'Incoming Call...') {
-            socket.current.emit('reject_call', { to: convoId });
+            socket.current.emit('reject_call', { to: participantId });
+            saveCallLog('Missed');
+        } else {
+            saveCallLog('Finished');
         }
         webRTCService.current?.close();
         router.back();
@@ -114,10 +136,11 @@ export default function CallScreen() {
                 const offer = JSON.parse(signal as string);
                 const answer = await webRTCService.current.handleOffer(offer);
                 socket.current.emit('answer_call', {
-                    to: convoId,
+                    to: participantId,
                     signal: answer
                 });
                 setCallStatus('Connected');
+                startTimer();
             } catch (error) {
                 console.error('Error accepting call:', error);
                 setCallStatus('Failed to connect');
@@ -150,7 +173,9 @@ export default function CallScreen() {
                 <Text style={styles.callerName}>
                     <Text>{incoming === 'true' ? (fromName || 'Incoming') : 'Outgoing Call'}</Text>
                 </Text>
-                <Text style={styles.callStatus}>{callStatus}</Text>
+                <Text style={styles.callStatus}>
+                    {callStatus === 'Connected' ? formatDuration(duration) : callStatus}
+                </Text>
             </View>
 
             <View style={styles.controls}>

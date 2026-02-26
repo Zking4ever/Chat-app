@@ -91,7 +91,11 @@ export default function Home() {
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
       style={styles.convoItem}
-      onPress={() => navigation.navigate('Chat' as any, { convoId: item.id })}
+      onPress={() => navigation.navigate('Chat' as any, {
+        convoId: item.id,
+        participantId: item.participant_id,
+        participantName: item.participant_name || `Chat #${item.id}`
+      })}
     >
       <View style={styles.avatarPlaceholder}>
         {item.is_online && <View style={styles.onlineBadge} />}

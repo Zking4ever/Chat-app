@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS Messages (
     conversation_id INTEGER NOT NULL,
     sender_id INTEGER NOT NULL,
     text TEXT,
+    message_type TEXT DEFAULT 'text',
+    metadata TEXT,
     reply_to INTEGER,
     sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     delivered_at DATETIME,

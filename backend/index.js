@@ -88,6 +88,30 @@ io.on('connection', (socket) => {
         io.to(`user_${to}`).emit('ice_candidate', candidate);
     });
 
+    socket.on('save_call_log', (data) => {
+        const { conversation_id, sender_id, text, callType, duration, status } = data;
+        try {
+            const stmt = db.prepare('INSERT INTO Messages (conversation_id, sender_id, text, message_type, metadata, status) VALUES (?, ?, ?, ?, ?, ?)');
+            const metadata = JSON.stringify({ callType, duration });
+            const result = stmt.run(conversation_id, sender_id, text, 'call', metadata, status === 'Missed' ? 'sent' : 'read');
+
+            db.prepare('UPDATE Conversations SET last_message_at = CURRENT_TIMESTAMP WHERE id = ?').run(conversation_id);
+
+            // Broadcast the new message to participants
+            io.emit('message', {
+                id: result.lastInsertRowid,
+                conversation_id,
+                sender_id,
+                text,
+                message_type: 'call',
+                metadata,
+                sent_at: new Date().toISOString()
+            });
+        } catch (err) {
+            console.error('Failed to save call log', err);
+        }
+    });
+
     socket.on('disconnect', () => {
         let disconnectedUserId = null;
         for (const [userId, socketId] of onlineUsers.entries()) {

@@ -74,11 +74,11 @@ router.get('/messages/:convoId', (req, res) => {
 
 // Send a message
 router.post('/message', (req, res) => {
-    const { conversation_id, sender_id, text, reply_to } = req.body;
+    const { conversation_id, sender_id, text, reply_to, message_type, metadata } = req.body;
 
     try {
-        const stmt = db.prepare('INSERT INTO Messages (conversation_id, sender_id, text, reply_to, status) VALUES (?, ?, ?, ?, ?)');
-        const result = stmt.run(conversation_id, sender_id, text, reply_to || null, 'sent');
+        const stmt = db.prepare('INSERT INTO Messages (conversation_id, sender_id, text, reply_to, message_type, metadata, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        const result = stmt.run(conversation_id, sender_id, text, reply_to || null, message_type || 'text', metadata || null, 'sent');
 
         db.prepare('UPDATE Conversations SET last_message_at = CURRENT_TIMESTAMP WHERE id = ?').run(conversation_id);
 

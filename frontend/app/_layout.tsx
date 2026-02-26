@@ -31,6 +31,7 @@ function RootNavigation() {
     from: number;
     name: string;
     callType: 'audio' | 'video';
+    participantId?: number;
     signal: any;
   } | null>(null);
 
@@ -46,7 +47,8 @@ function RootNavigation() {
         from: data.from,
         name: data.name,
         callType: data.callType,
-        signal: data.signal
+        signal: data.signal,
+        participantId: data.from // User ID of caller
       });
     };
 
@@ -59,12 +61,13 @@ function RootNavigation() {
 
   const handleAnswer = () => {
     if (!incomingCall) return;
-    const { from, name, callType, signal } = incomingCall;
+    const { from, name, callType, signal, participantId } = incomingCall;
     setIncomingCall(null);
     router.push({
       pathname: '/(root)/Call',
       params: {
-        convoId: from,
+        convoId: from, // Note: In incoming calls 'from' might be user_id, need to be careful if it should be convo_id
+        participantId: participantId,
         callType: callType,
         incoming: 'true',
         fromName: name,

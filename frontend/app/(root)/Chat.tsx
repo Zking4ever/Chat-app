@@ -8,12 +8,10 @@ import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
-const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-
 export default function ChatScreen() {
     const { user } = useAuth();
-    const { convoId } = useLocalSearchParams();
-    const [messages, setMessages] = useState([]);
+    const { convoId, participantId, participantName } = useLocalSearchParams();
+    const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState('');
     const navigation = useNavigation();
     const socket = useRef<any>(null);
@@ -31,7 +29,7 @@ export default function ChatScreen() {
 
         const handleMessage = (msg: any) => {
             if (msg.conversation_id === Number(convoId)) {
-                setMessages(prev => [...prev, msg] as any);
+                setMessages(prev => [...prev, msg]);
             }
         };
 
@@ -84,8 +82,8 @@ export default function ChatScreen() {
 
         try {
             const response = await chatAPI.sendMessage(msgData);
-            const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent' };
-            setMessages(prev => [...prev, newMsg] as any);
+            const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent', message_type: 'text' };
+            setMessages(prev => [...prev, newMsg]);
             setInputText('');
 
             // Stop typing immediately on send
@@ -99,26 +97,53 @@ export default function ChatScreen() {
     };
 
     const startCall = (type: 'audio' | 'video') => {
-        // This will navigate to a CallScreen
-        navigation.navigate('Call' as never, {
+        navigation.navigate('Call' as any, {
             convoId,
+            participantId,
+            participantName,
             callType: type,
             incoming: 'false',
             fromName: user.name
-        } as any);
+        });
     };
 
-    const renderItem = ({ item }: any) => (
-        <View style={[
-            styles.messageBox,
-            item.sender_id === user.id ? styles.myMessage : styles.theirMessage
-        ]}>
-            <Text style={styles.messageText}>{item.text}</Text>
-            <Text style={styles.messageTime}>
-                {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
-        </View>
-    );
+    const renderItem = ({ item }: any) => {
+        const isMe = item.sender_id === user.id;
+
+        if (item.message_type === 'call') {
+            const meta = item.metadata ? JSON.parse(item.metadata) : {};
+            const iconName = meta.callType === 'video' ? 'videocam' : 'call';
+
+            return (
+                <View style={styles.callLogContainer}>
+                    <View style={styles.callLogBox}>
+                        <View style={styles.callLogIcon}>
+                            <Ionicons name={iconName as any} size={20} color="#555" />
+                        </View>
+                        <View>
+                            <Text style={styles.callLogText}>{item.text}</Text>
+                            <Text style={styles.callLogSubtext}>
+                                {meta.duration ? `${meta.duration} • ` : ''}
+                                {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            );
+        }
+
+        return (
+            <View style={[
+                styles.messageBox,
+                isMe ? styles.myMessage : styles.theirMessage
+            ]}>
+                <Text style={styles.messageText}>{item.text}</Text>
+                <Text style={styles.messageTime}>
+                    {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -128,7 +153,7 @@ export default function ChatScreen() {
                         <Ionicons name="arrow-back" size={24} color="#fff" />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.headerTitle}>Chat #{convoId}</Text>
+                        <Text style={styles.headerTitle}>{participantName || `Chat #${convoId}`}</Text>
                         {isTyping && <Text style={styles.typingIndicatorText}>{typingUser} is typing...</Text>}
                     </View>
                 </View>
@@ -238,5 +263,31 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 10,
     },
-    sendBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' }
+    sendBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+    callLogContainer: {
+        alignItems: 'center',
+        marginVertical: 15,
+    },
+    callLogBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.7)',
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
+    },
+    callLogIcon: {
+        marginRight: 10,
+    },
+    callLogText: {
+        fontSize: 14,
+        color: '#333',
+        fontWeight: '500',
+    },
+    callLogSubtext: {
+        fontSize: 11,
+        color: '#777',
+    },
 });
