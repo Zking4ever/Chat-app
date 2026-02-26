@@ -88,6 +88,10 @@ io.on('connection', (socket) => {
         io.to(`user_${to}`).emit('ice_candidate', candidate);
     });
 
+    socket.on('end_call', ({ to }) => {
+        io.to(`user_${to}`).emit('call_ended');
+    });
+
     socket.on('save_call_log', (data) => {
         const { conversation_id, sender_id, text, callType, duration, status } = data;
         try {

@@ -72,6 +72,11 @@ export default function CallScreen() {
             webRTCService.current?.addIceCandidate(candidate);
         });
 
+        socket.current.on('call_ended', () => {
+            setCallStatus('Call Ended');
+            setTimeout(() => router.back(), 1500);
+        });
+
         socket.current.on('call_rejected', () => {
             setCallStatus('Call Rejected');
             saveCallLog('Missed');
@@ -83,6 +88,19 @@ export default function CallScreen() {
             webRTCService.current?.close();
         };
     }, []);
+
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            if (localVideoRef.current && localStream) {
+                localVideoRef.current.srcObject = localStream;
+                console.log('Attached local stream to video element');
+            }
+            if (remoteVideoRef.current && remoteStream) {
+                remoteVideoRef.current.srcObject = remoteStream;
+                console.log('Attached remote stream to video element');
+            }
+        }
+    }, [localStream, remoteStream]);
 
     const startTimer = () => {
         durationInterval.current = setInterval(() => {
@@ -113,6 +131,9 @@ export default function CallScreen() {
     };
 
     const endCall = () => {
+        // Notify the other side
+        socket.current.emit('end_call', { to: participantId });
+
         saveCallLog('Finished');
         webRTCService.current?.close();
         router.back();
