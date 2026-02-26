@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 // For Web, we use the global RTCPeerConnection
 // For React Native, we would typically use react-native-webrtc
-// But for now, we'll focus on making it work in the web browser as requested.
+// We remove hardcoded Platform checks to allow the environment to provide the APIs.
 
 export class WebRTCService {
     private peerConnection: RTCPeerConnection | null = null;
@@ -19,9 +19,12 @@ export class WebRTCService {
     };
 
     constructor() {
-        if (Platform.OS === 'web') {
+        // Attempt to initialize if RTCPeerConnection is available globally
+        if (typeof RTCPeerConnection !== 'undefined') {
             this.peerConnection = new RTCPeerConnection(this.config);
             this.setupListeners();
+        } else {
+            console.warn('RTCPeerConnection is not available in this environment.');
         }
     }
 
@@ -45,8 +48,9 @@ export class WebRTCService {
     }
 
     async getLocalStream(video: boolean = true) {
-        if (Platform.OS === 'web') {
-            try {
+        try {
+            // Check for mediaDevices availability
+            if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                 this.localStream = await navigator.mediaDevices.getUserMedia({
                     audio: true,
                     video: video
@@ -59,12 +63,14 @@ export class WebRTCService {
                 });
 
                 return this.localStream;
-            } catch (error) {
-                console.error('Error getting local stream:', error);
-                throw error;
+            } else {
+                console.error('navigator.mediaDevices.getUserMedia is not available.');
+                return null;
             }
+        } catch (error) {
+            console.error('Error getting local stream:', error);
+            throw error;
         }
-        return null;
     }
 
     async createOffer() {

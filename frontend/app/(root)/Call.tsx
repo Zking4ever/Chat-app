@@ -173,21 +173,32 @@ export default function CallScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.callerInfo}>
-                {callType === 'video' && Platform.OS === 'web' ? (
+                {callType === 'video' ? (
                     <View style={styles.videoContainer}>
-                        <video
-                            ref={remoteVideoRef}
-                            autoPlay
-                            playsInline
-                            style={styles.remoteVideo}
-                        />
-                        <video
-                            ref={localVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            style={styles.localVideo}
-                        />
+                        {Platform.OS === 'web' ? (
+                            <>
+                                <video
+                                    ref={remoteVideoRef}
+                                    autoPlay
+                                    playsInline
+                                    style={styles.remoteVideo}
+                                />
+                                <video
+                                    ref={localVideoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    style={styles.localVideo}
+                                />
+                            </>
+                        ) : (
+                            <View style={styles.nativeVideoPlaceholder}>
+                                <Ionicons name="videocam" size={80} color="#666" />
+                                <Text style={styles.nativeVideoText}>
+                                    Native Video requires development build.
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 ) : (
                     <View style={styles.avatarLarge} />
@@ -229,6 +240,8 @@ const styles = StyleSheet.create({
     videoContainer: { width: '90%', height: 400, backgroundColor: '#000', borderRadius: 20, overflow: 'hidden', position: 'relative', marginBottom: 20 },
     remoteVideo: { width: '100%', height: '100%', objectFit: 'cover' },
     localVideo: { width: 100, height: 150, position: 'absolute', bottom: 10, right: 10, borderRadius: 10, backgroundColor: '#333', objectFit: 'cover' },
+    nativeVideoPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1A1A1A' },
+    nativeVideoText: { color: '#666', marginTop: 15, fontSize: 16, textAlign: 'center', paddingHorizontal: 20 },
     controls: { marginBottom: 50, width: '100%', alignItems: 'center' },
     incomingControls: { flexDirection: 'row', justifyContent: 'space-around', width: '80%' },
     controlBtn: { width: 70, height: 70, borderRadius: 35, justifyContent: 'center', alignItems: 'center', elevation: 5 },

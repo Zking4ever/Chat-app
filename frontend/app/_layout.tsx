@@ -1,4 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -11,6 +12,7 @@ import CallNotification from '@/components/CallNotification';
 import '@/src/i18n';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootNavigation() {
   const { user, hasSeenOnboarding } = useAuth();
@@ -19,11 +21,10 @@ function RootNavigation() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+
     setIsMounted(true);
     const isExpoGo = Constants.appOwnership === 'expo';
     const isWeb = Platform.OS === 'web';
-
-    console.log(`[ABA Environment] OS: ${Platform.OS}, Expo Go: ${isExpoGo}`);
 
     if (!isExpoGo && !isWeb) {
       UpdateService.checkAndApplyUpdateSilently();
@@ -90,6 +91,8 @@ function RootNavigation() {
   useEffect(() => {
     if (!isMounted || hasSeenOnboarding === null) return;
 
+    // Hide splash screen once we know where we're going
+
     const inAuthScreens =
       segments[0] === 'Welcome' ||
       segments[0] === 'Login' ||
@@ -140,7 +143,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <RootNavigation />
+        <SafeAreaProvider>
+          <RootNavigation />
+        </SafeAreaProvider>
       </ThemeProvider>
     </AuthProvider>
   );

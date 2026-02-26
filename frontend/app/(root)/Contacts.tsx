@@ -4,7 +4,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
     Alert,
     FlatList,
-    SafeAreaView,
     StyleSheet,
     Text,
     TextInput,
@@ -12,16 +11,20 @@ import {
     View,
     ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { chatAPI, contactAPI } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
 
+import { useTheme } from '@/context/ThemeContext';
+
 export default function ContactsScreen() {
     const { user } = useAuth();
+    const { colors } = useTheme();
     const [contacts, setContacts] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
 
     useEffect(() => {
         (async () => {
@@ -86,52 +89,52 @@ export default function ContactsScreen() {
 
     const renderItem = ({ item }: any) => (
         <TouchableOpacity
-            style={styles.contactItem}
+            style={[styles.contactItem, { borderBottomColor: colors.surface }]}
             onPress={() => handleStartChat(item)}
         >
-            <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{item.firstName?.charAt(0) || '?'}</Text>
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surface }]}>
+                <Text style={[styles.avatarText, { color: colors.text }]}>{item.firstName?.charAt(0) || '?'}</Text>
             </View>
             <View style={styles.contactDetails}>
-                <Text style={styles.contactName}>{item.firstName} {item.lastName}</Text>
-                <Text style={styles.contactPhone}>{item.phoneNumbers?.[0]?.number || 'No number'}</Text>
+                <Text style={[styles.contactName, { color: colors.text }]}>{item.firstName} {item.lastName}</Text>
+                <Text style={[styles.contactPhone, { color: colors.textSecondary }]}>{item.phoneNumbers?.[0]?.number || 'No number'}</Text>
             </View>
             {item.isRegistered ? (
-                <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>ABA User</Text>
+                <View style={[styles.statusBadge, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.statusText, { color: colors.tint }]}>ABA User</Text>
                 </View>
             ) : (
-                <Text style={styles.inviteText}>Invite to ABA</Text>
+                <Text style={[styles.inviteText, { color: colors.tint }]}>Invite to ABA</Text>
             )}
         </TouchableOpacity>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color={colors.headerText} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Select Contact</Text>
+                <Text style={[styles.headerTitle, { color: colors.headerText }]}>Select Contact</Text>
             </View>
 
-            <View style={styles.searchBarContainer}>
-                <View style={styles.searchBar}>
-                    <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+            <View style={[styles.searchBarContainer, { backgroundColor: colors.background, borderBottomColor: colors.surface }]}>
+                <View style={[styles.searchBar, { backgroundColor: colors.surface }]}>
+                    <Ionicons name="search" size={20} color={colors.textSecondary} style={styles.searchIcon} />
                     <TextInput
-                        style={styles.searchInput}
+                        style={[styles.searchInput, { color: colors.text }]}
                         placeholder="Search name or number"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
-                        placeholderTextColor="#888"
+                        placeholderTextColor={colors.textSecondary}
                     />
                 </View>
             </View>
 
             {loading ? (
                 <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#075E54" />
-                    <Text style={styles.loadingText}>Loading contacts...</Text>
+                    <ActivityIndicator size="large" color={colors.tint} />
+                    <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading contacts...</Text>
                 </View>
             ) : (
                 <FlatList
@@ -140,7 +143,7 @@ export default function ContactsScreen() {
                     keyExtractor={(item: any) => item.id}
                     ListEmptyComponent={
                         <View style={styles.center}>
-                            <Text style={styles.emptyText}>No contacts found</Text>
+                            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No contacts found</Text>
                         </View>
                     }
                 />
@@ -150,66 +153,58 @@ export default function ContactsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1 },
     header: {
         height: 60,
-        backgroundColor: '#075E54',
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 15
     },
     backBtn: { marginRight: 15 },
-    headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    headerTitle: { fontSize: 18, fontWeight: 'bold' },
     searchBarContainer: {
         padding: 10,
-        backgroundColor: '#fff',
         borderBottomWidth: 0.5,
-        borderBottomColor: '#eee'
     },
     searchBar: {
         flexDirection: 'row',
-        backgroundColor: '#f0f0f0',
         borderRadius: 25,
         alignItems: 'center',
         paddingHorizontal: 15,
         height: 45
     },
     searchIcon: { marginRight: 10 },
-    searchInput: { flex: 1, fontSize: 16, color: '#000' },
+    searchInput: { flex: 1, fontSize: 16 },
     contactItem: {
         flexDirection: 'row',
         padding: 12,
         borderBottomWidth: 0.5,
-        borderBottomColor: '#f0f0f0',
         alignItems: 'center'
     },
     avatarPlaceholder: {
         width: 50,
         height: 50,
         borderRadius: 25,
-        backgroundColor: '#075E5420',
         marginRight: 15,
         justifyContent: 'center',
         alignItems: 'center'
     },
     avatarText: {
-        color: '#075E54',
         fontSize: 20,
         fontWeight: 'bold'
     },
     contactDetails: { flex: 1 },
-    contactName: { fontSize: 17, fontWeight: '600', color: '#000' },
-    contactPhone: { fontSize: 14, color: '#666', marginTop: 2 },
+    contactName: { fontSize: 17, fontWeight: '600' },
+    contactPhone: { fontSize: 14, marginTop: 2 },
     statusBadge: {
-        backgroundColor: '#E7FCE3',
         paddingHorizontal: 10,
         paddingVertical: 5,
         borderRadius: 15
     },
-    statusText: { color: '#075E54', fontSize: 12, fontWeight: 'bold' },
-    inviteText: { color: '#075E54', fontWeight: 'bold', fontSize: 14 },
+    statusText: { fontSize: 12, fontWeight: 'bold' },
+    inviteText: { fontWeight: 'bold', fontSize: 14 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 50 },
-    loadingText: { marginTop: 10, color: '#666' },
-    emptyText: { color: '#888', fontSize: 16 }
+    loadingText: { marginTop: 10 },
+    emptyText: { fontSize: 16 }
 });
 

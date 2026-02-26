@@ -3,12 +3,12 @@ import React, { use, useEffect, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { chatAPI } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
 import SocketService from '@/src/services/SocketService';
@@ -155,19 +155,16 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     height: 60,
     display: 'flex',
     flexDirection: 'row',
-    backgroundColor: '#075E54',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 15,
   },
   headerTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -175,14 +172,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 15,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#eee',
     alignItems: 'center',
   },
   avatarPlaceholder: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#ccc',
     marginRight: 15,
     position: 'relative',
   },
@@ -218,7 +213,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   typingText: {
-    color: '#25D366',
     fontStyle: 'italic',
     fontWeight: '500',
   },
@@ -233,7 +227,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#25D366',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
