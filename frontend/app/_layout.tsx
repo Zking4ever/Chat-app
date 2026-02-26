@@ -5,7 +5,7 @@ import Constants from 'expo-constants';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import UpdateService from '@/src/services/UpdateService';
-import StorageService from '@/src/services/StorageService';
+import SocketService from '@/src/services/SocketService';
 
 function RootNavigation() {
   const { user, hasSeenOnboarding } = useAuth();
@@ -14,23 +14,43 @@ function RootNavigation() {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    const init = async () => {
-      setIsMounted(true);
+    setIsMounted(true);
+    const isExpoGo = Constants.appOwnership === 'expo';
+    const isWeb = Platform.OS === 'web';
 
-      const isExpoGo = Constants.appOwnership === 'expo';
-      const isWeb = Platform.OS === 'web';
+    console.log(`[ABA Environment] OS: ${Platform.OS}, Expo Go: ${isExpoGo}`);
 
-      console.log(`[ABA Environment] OS: ${Platform.OS}, Expo Go: ${isExpoGo}`);
-
-      // Auto-updates only work in native builds (not Expo Go or Web)
-      if (!isExpoGo && !isWeb) {
-        UpdateService.checkAndApplyUpdateSilently();
-      } else {
-        console.log('Skipping auto-update check (not a native build environment)');
-      }
-    };
-    init();
+    if (!isExpoGo && !isWeb) {
+      UpdateService.checkAndApplyUpdateSilently();
+    }
   }, []);
+
+  // Stabilize socket connection and incoming call listener
+  useEffect(() => {
+    if (user.id === -1 || !isMounted) return;
+
+    const socket = SocketService.getSocket(user.id);
+
+    const handleIncomingCall = (data: any) => {
+      console.log('Global incoming call received:', data);
+      router.push({
+        pathname: '/(root)/Call',
+        params: {
+          convoId: data.from,
+          callType: data.callType,
+          incoming: 'true',
+          fromName: data.name,
+          signal: JSON.stringify(data.signal)
+        }
+      });
+    };
+
+    socket.on('incoming_call', handleIncomingCall);
+
+    return () => {
+      socket.off('incoming_call', handleIncomingCall);
+    };
+  }, [user.id, isMounted]);
 
   useEffect(() => {
     if (!isMounted || hasSeenOnboarding === null) return;
@@ -43,7 +63,6 @@ function RootNavigation() {
     // 1. Logged in users go home
     if (user.id !== -1 && inAuthScreens) {
       router.replace('/(root)/Home');
-      return;
     }
 
     // 2. Not logged in users logic
@@ -58,15 +77,12 @@ function RootNavigation() {
         }
       }
     }
-  }, [user, isMounted, hasSeenOnboarding, segments]);
+  }, [user.id, isMounted, hasSeenOnboarding, segments]);
 
-  // Prevent flicker by showing nothing (or a splash screen) until ready
   if (!isMounted || hasSeenOnboarding === null) return null;
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }
-
-
 
 export default function RootLayout() {
   return (

@@ -11,7 +11,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { io } from 'socket.io-client';
+import SocketService from '@/src/services/SocketService';
 import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,24 +35,27 @@ export default function ChatScreen() {
         fetchMessages();
 
         // Init socket
-        socket.current = io(SOCKET_URL);
-        socket.current.emit('join', user.id);
+        socket.current = SocketService.getSocket(user.id);
 
-        socket.current.on('message', (msg: any) => {
+        const handleMessage = (msg: any) => {
             if (msg.conversation_id === Number(convoId)) {
                 setMessages(prev => [...prev, msg] as any);
             }
-        });
+        };
 
-        socket.current.on('typing_status', (data: any) => {
+        const handleTypingStatus = (data: any) => {
             if (data.convoId === Number(convoId) && data.userId !== user.id) {
                 setIsTyping(data.isTyping);
                 setTypingUser(data.userName);
             }
-        });
+        };
+
+        socket.current.on('message', handleMessage);
+        socket.current.on('typing_status', handleTypingStatus);
 
         return () => {
-            socket.current.disconnect();
+            socket.current.off('message', handleMessage);
+            socket.current.off('typing_status', handleTypingStatus);
         };
     }, [convoId]);
 
@@ -104,9 +107,14 @@ export default function ChatScreen() {
     };
 
     const startCall = (type: 'audio' | 'video') => {
-        // This will navigate to a CallScreen (to be created)
+        // This will navigate to a CallScreen
         console.log(`Starting ${type} call...`);
-        navigation.navigate('Call' as never, { convoId, callType: type, incoming: 'false' } as never);
+        navigation.navigate('Call' as never, {
+            convoId,
+            callType: type,
+            incoming: 'false',
+            fromName: user.name
+        } as any);
     };
 
     const renderItem = ({ item }: any) => (

@@ -8,11 +8,14 @@ router.get('/conversations/:userId', (req, res) => {
     try {
         const stmt = db.prepare(`
             SELECT c.*, 
+            u.id as participant_id, u.name as participant_name, u.is_online, u.profile_picture,
             (SELECT text FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message,
             (SELECT sent_at FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message_time
             FROM Conversations c
-            JOIN ConversationParticipants cp ON c.id = cp.conversation_id
-            WHERE cp.user_id = ?
+            JOIN ConversationParticipants cp1 ON c.id = cp1.conversation_id
+            JOIN ConversationParticipants cp2 ON c.id = cp2.conversation_id AND cp2.user_id != cp1.user_id
+            JOIN Users u ON cp2.user_id = u.id
+            WHERE cp1.user_id = ?
             ORDER BY last_message_at DESC
         `);
         const convos = stmt.all(userId);
