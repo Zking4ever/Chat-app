@@ -11,7 +11,7 @@ const SOCKET_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:300
 
 export default function CallScreen() {
     const { user } = useAuth();
-    const { convoId, participantId, callType, incoming, fromName, signal } = useLocalSearchParams();
+    const { convoId, participantId, callType, incoming, fromName, signal, autoAnswer } = useLocalSearchParams();
     const router = useRouter();
     const [callStatus, setCallStatus] = useState(incoming === 'true' ? 'Incoming Call...' : 'Calling...');
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -41,7 +41,7 @@ export default function CallScreen() {
             });
         });
 
-        const startCall = async () => {
+        const startCallAction = async () => {
             const stream = await webRTCService.current?.getLocalStream(callType === 'video');
             if (stream) setLocalStream(stream);
 
@@ -55,10 +55,15 @@ export default function CallScreen() {
                     signalData: offer
                 });
                 console.log(`Starting ${callType} call...`);
+            } else if (autoAnswer === 'true') {
+                // If autoAnswer is passed, wait a small bit for stream and then connect
+                setTimeout(() => {
+                    acceptCall();
+                }, 500);
             }
         };
 
-        startCall();
+        startCallAction();
 
         socket.current.on('call_accepted', async (signal: any) => {
             setCallStatus('Connected');
@@ -141,6 +146,13 @@ export default function CallScreen() {
 
     const acceptCall = async () => {
         setCallStatus('Connecting...');
+
+        // Ensure we have local stream before answering
+        if (!localStream && webRTCService.current) {
+            const stream = await webRTCService.current.getLocalStream(callType === 'video');
+            if (stream) setLocalStream(stream);
+        }
+
         if (webRTCService.current && signal) {
             try {
                 const offer = JSON.parse(signal as string);

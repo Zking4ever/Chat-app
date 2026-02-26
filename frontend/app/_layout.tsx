@@ -59,17 +59,18 @@ function RootNavigation() {
     };
   }, [user.id, isMounted]);
 
-  const handleAnswer = () => {
+  const handleAnswer = (autoAnswer: boolean = true) => {
     if (!incomingCall) return;
     const { from, name, callType, signal, participantId } = incomingCall;
     setIncomingCall(null);
     router.push({
       pathname: '/(root)/Call',
       params: {
-        convoId: from, // Note: In incoming calls 'from' might be user_id, need to be careful if it should be convo_id
+        convoId: from,
         participantId: participantId,
         callType: callType,
         incoming: 'true',
+        autoAnswer: autoAnswer ? 'true' : 'false',
         fromName: name,
         signal: JSON.stringify(signal)
       }
@@ -120,8 +121,9 @@ function RootNavigation() {
           visible={!!incomingCall}
           callerName={incomingCall.name}
           callType={incomingCall.callType}
-          onAnswer={handleAnswer}
+          onAnswer={() => handleAnswer(true)}
           onDecline={handleDecline}
+          onNotificationPress={() => handleAnswer(false)}
         />
       )}
     </>

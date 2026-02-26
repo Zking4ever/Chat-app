@@ -9,6 +9,7 @@ interface CallNotificationProps {
     callType: 'audio' | 'video';
     onAnswer: () => void;
     onDecline: () => void;
+    onNotificationPress?: () => void;
 }
 
 export default function CallNotification({
@@ -16,7 +17,8 @@ export default function CallNotification({
     callerName,
     callType,
     onAnswer,
-    onDecline
+    onDecline,
+    onNotificationPress
 }: CallNotificationProps) {
     const translateY = React.useRef(new Animated.Value(-200)).current;
 
@@ -46,7 +48,11 @@ export default function CallNotification({
         <Animated.View style={[styles.container, { transform: [{ translateY }] }]}>
             <BlurView intensity={80} style={styles.blurContainer} tint="dark">
                 <View style={styles.content}>
-                    <View style={styles.info}>
+                    <TouchableOpacity
+                        style={styles.info}
+                        onPress={onNotificationPress}
+                        activeOpacity={0.7}
+                    >
                         <View style={styles.avatar}>
                             <Ionicons name="person" size={24} color="#fff" />
                         </View>
@@ -56,7 +62,7 @@ export default function CallNotification({
                                 Incoming {callType} call...
                             </Text>
                         </View>
-                    </View>
+                    </TouchableOpacity>
 
                     <View style={styles.actions}>
                         <TouchableOpacity
