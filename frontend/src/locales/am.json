@@ -8,7 +8,7 @@
             "slide5": "ትናንትም፣ ዛሬም፣ ነገም እወድሻለሁ። ለዘላለምም"
         },
         "getStarted": "እንጀምር ❤️",
-        "next": "ቀጥል",
+        "next": "ቀጣይ",
         "skip": "ይለፉ"
     },
     "auth": {
@@ -18,8 +18,15 @@
         "password": "የይለፍ ቃል"
     },
     "settings": {
+        "title": "ቅንብሮች",
         "language": "ቋንቋ",
         "english": "እንግሊዝኛ",
-        "amharic": "አማርኛ"
+        "amharic": "አማርኛ",
+        "theme": "ገጽታ",
+        "light": "ብሩህ",
+        "dark": "ጨለማ",
+        "romantic": "ሮማንቲክ",
+        "about": "ስለ እኛ",
+        "logout": "ውጣ"
     }
 }

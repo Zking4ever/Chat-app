@@ -18,8 +18,15 @@
         "password": "Password"
     },
     "settings": {
+        "title": "Settings",
         "language": "Language",
         "english": "English",
-        "amharic": "Amharic"
+        "amharic": "Amharic",
+        "theme": "Theme",
+        "light": "Light Mode",
+        "dark": "Dark Mode",
+        "romantic": "Romantic Theme",
+        "about": "About",
+        "logout": "Logout"
     }
 }

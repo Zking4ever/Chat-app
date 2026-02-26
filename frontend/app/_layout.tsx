@@ -9,6 +9,8 @@ import SocketService from '@/src/services/SocketService';
 
 import CallNotification from '@/components/CallNotification';
 import '@/src/i18n';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { StatusBar } from 'expo-status-bar';
 
 function RootNavigation() {
   const { user, hasSeenOnboarding } = useAuth();
@@ -112,10 +114,13 @@ function RootNavigation() {
     }
   }, [user.id, isMounted, hasSeenOnboarding, segments]);
 
+  const { theme } = useTheme();
+
   if (!isMounted || hasSeenOnboarding === null) return null;
 
   return (
     <>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }} />
       {incomingCall && (
         <CallNotification
@@ -134,7 +139,9 @@ function RootNavigation() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootNavigation />
+      <ThemeProvider>
+        <RootNavigation />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

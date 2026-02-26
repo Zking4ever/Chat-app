@@ -12,16 +12,18 @@ import {
 import { chatAPI } from '../../lib/api';
 import { useAuth } from '@/context/AuthContext';
 import SocketService from '@/src/services/SocketService';
-
-// Dummy user ID for development - in real app, get from storage/auth
-
+import { useTheme } from '@/context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 export default function Home() {
   const { user } = useAuth();
+  const { colors } = useTheme();
   const [conversations, setConversations] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<number, boolean>>({});
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const router = useRouter();
 
   const fetchConversations = async (id: number) => {
     try {
@@ -90,25 +92,25 @@ export default function Home() {
 
   const renderItem = ({ item }: any) => (
     <TouchableOpacity
-      style={styles.convoItem}
+      style={[styles.convoItem, { borderBottomColor: colors.surface }]}
       onPress={() => navigation.navigate('Chat' as any, {
         convoId: item.id,
         participantId: item.participant_id,
         participantName: item.participant_name || `Chat #${item.id}`
       })}
     >
-      <View style={styles.avatarPlaceholder}>
+      <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surface }]}>
         {item.is_online && <View style={styles.onlineBadge} />}
       </View>
       <View style={styles.convoDetails}>
         <View style={styles.convoHeader}>
-          <Text style={styles.convoName}>{item.name || `Chat #${item.id}`}</Text>
-          <Text style={styles.convoTime}>
+          <Text style={[styles.convoName, { color: colors.text }]}>{item.name || `Chat #${item.id}`}</Text>
+          <Text style={[styles.convoTime, { color: colors.textSecondary }]}>
             {item.last_message_time ? new Date(item.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </Text>
         </View>
         <Text
-          style={[styles.lastMessage, typingUsers[item.id] && styles.typingText]}
+          style={[styles.lastMessage, { color: colors.textSecondary }, typingUsers[item.id] && styles.typingText]}
           numberOfLines={1}
         >
           {typingUsers[item.id] ? 'Typing...' : (item.last_message || 'No messages yet')}
@@ -118,9 +120,12 @@ export default function Home() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>ABA</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>ABA</Text>
+        <TouchableOpacity onPress={() => router.push('/(root)/Settings')}>
+          <Ionicons name="settings-outline" size={24} color={colors.headerText} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -128,20 +133,20 @@ export default function Home() {
         renderItem={renderItem}
         keyExtractor={(item: any) => item.id.toString()}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.tint} />
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text>No conversations yet. Start chatting!</Text>
+            <Text style={{ color: colors.textSecondary }}>No conversations yet. Start chatting!</Text>
           </View>
         }
       />
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.buttonBackground }]}
         onPress={() => navigation.navigate('Contacts' as never)}
       >
-        <Text style={styles.fabText}>+</Text>
+        <Text style={[styles.fabText, { color: colors.buttonText }]}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -154,8 +159,11 @@ const styles = StyleSheet.create({
   },
   header: {
     height: 60,
+    display: 'flex',
+    flexDirection: 'row',
     backgroundColor: '#075E54',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 15,
   },
   headerTitle: {

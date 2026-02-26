@@ -7,6 +7,7 @@ interface AuthContextType {
   setUser: React.Dispatch<React.SetStateAction<UserInter>>;
   hasSeenOnboarding: boolean | null;
   completeOnboarding: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,8 +39,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasSeenOnboarding(true);
   };
 
+  const logout = async () => {
+    setUser({
+      id: -1,
+      is_online: 0,
+      last_seen: '',
+      name: null,
+      phone: '',
+      profile_picture: '',
+      username: '',
+      created_at: 'null'
+    });
+    // Optional: await StorageService.clearAll(); or something similar
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, hasSeenOnboarding, completeOnboarding }}>
+    <AuthContext.Provider value={{ user, setUser, hasSeenOnboarding, completeOnboarding, logout }}>
       {children}
     </AuthContext.Provider>
   );

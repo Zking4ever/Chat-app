@@ -6,6 +6,7 @@ export default function RootLayout() {
       <Stack.Screen name="Home" />
       <Stack.Screen name="Chat" />
       <Stack.Screen name="Contacts" />
+      <Stack.Screen name="Settings" />
       <Stack.Screen name="About" />
     </Stack>
   );

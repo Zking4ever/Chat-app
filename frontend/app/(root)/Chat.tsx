@@ -9,10 +9,11 @@ import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ChatScreen() {
     const { user } = useAuth();
+    const { colors } = useTheme();
     const { convoId, participantId, participantName } = useLocalSearchParams();
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState('');
@@ -142,13 +143,13 @@ export default function ChatScreen() {
 
             return (
                 <View style={styles.callLogContainer}>
-                    <View style={styles.callLogBox}>
+                    <View style={[styles.callLogBox, { backgroundColor: colors.surface, borderColor: colors.tint }]}>
                         <View style={styles.callLogIcon}>
-                            <Ionicons name={iconName as any} size={20} color={Colors.light.tint} />
+                            <Ionicons name={iconName as any} size={20} color={colors.tint} />
                         </View>
                         <View>
-                            <Text style={styles.callLogText}>{item.text}</Text>
-                            <Text style={styles.callLogSubtext}>
+                            <Text style={[styles.callLogText, { color: colors.text }]}>{item.text}</Text>
+                            <Text style={[styles.callLogSubtext, { color: colors.textSecondary }]}>
                                 {meta.duration ? `${meta.duration} • ` : ''}
                                 {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Text>
@@ -161,10 +162,10 @@ export default function ChatScreen() {
         return (
             <View style={[
                 styles.messageBox,
-                isMe ? styles.myMessage : styles.theirMessage
+                isMe ? [styles.myMessage, { backgroundColor: colors.bubbleSent }] : [styles.theirMessage, { backgroundColor: colors.bubbleReceived }]
             ]}>
-                <Text style={styles.messageText}>{item.text}</Text>
-                <Text style={styles.messageTime}>
+                <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text }]}>{item.text}</Text>
+                <Text style={[styles.messageTime, { color: isMe ? 'rgba(255,255,255,0.7)' : colors.textSecondary }]}>
                     {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
             </View>
@@ -172,23 +173,23 @@ export default function ChatScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
                 <View style={styles.headerLeft}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Ionicons name="arrow-back" size={24} color={colors.headerText} />
                     </TouchableOpacity>
                     <View>
-                        <Text style={styles.headerTitle}>{participantName || `Chat #${convoId}`}</Text>
-                        {isTyping && <Text style={styles.typingIndicatorText}>{typingUser} is typing...</Text>}
+                        <Text style={[styles.headerTitle, { color: colors.headerText }]}>{participantName || `Chat #${convoId}`}</Text>
+                        {isTyping && <Text style={[styles.typingIndicatorText, { color: colors.headerText, opacity: 0.8 }]}>{typingUser} is typing...</Text>}
                     </View>
                 </View>
                 <View style={styles.headerActions}>
                     <TouchableOpacity onPress={() => startCall('audio')} style={styles.actionBtn}>
-                        <Ionicons name="call" size={22} color="#fff" />
+                        <Ionicons name="call" size={22} color={colors.headerText} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => startCall('video')} style={styles.actionBtn}>
-                        <Ionicons name="videocam" size={22} color="#fff" />
+                        <Ionicons name="videocam" size={22} color={colors.headerText} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -208,16 +209,17 @@ export default function ChatScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
-                <View style={styles.inputArea}>
+                <View style={[styles.inputArea, { backgroundColor: colors.surface, borderTopColor: colors.background }]}>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.surface }]}
                         placeholder="Type a message..."
+                        placeholderTextColor={colors.textSecondary}
                         value={inputText}
                         onChangeText={handleTextInput}
                         multiline
                     />
-                    <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-                        <Ionicons name="send" size={20} color="#fff" />
+                    <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.buttonBackground }]} onPress={handleSend}>
+                        <Ionicons name="send" size={20} color={colors.buttonText} />
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>
@@ -226,10 +228,9 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: Colors.light.background },
+    container: { flex: 1 },
     header: {
         height: 60,
-        backgroundColor: Colors.light.tint,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -247,12 +248,11 @@ const styles = StyleSheet.create({
         marginLeft: 20,
     },
     typingIndicatorText: {
-        color: '#eee',
         fontSize: 12,
         fontStyle: 'italic',
     },
     backBtn: { marginRight: 15 },
-    headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    headerTitle: { fontSize: 18, fontWeight: 'bold' },
     messageList: { padding: 10 },
     messageBox: {
         maxWidth: '80%',
@@ -267,40 +267,33 @@ const styles = StyleSheet.create({
     },
     myMessage: {
         alignSelf: 'flex-end',
-        backgroundColor: Colors.light.bubbleSent,
         borderBottomRightRadius: 2,
     },
     theirMessage: {
         alignSelf: 'flex-start',
-        backgroundColor: Colors.light.bubbleReceived,
         borderBottomLeftRadius: 2,
     },
-    messageText: { fontSize: 16, color: '#000' },
-    messageTime: { fontSize: 10, color: '#888', alignSelf: 'flex-end', marginTop: 5 },
+    messageText: { fontSize: 16 },
+    messageTime: { fontSize: 10, alignSelf: 'flex-end', marginTop: 5 },
     inputArea: {
         flexDirection: 'row',
         padding: 10,
-        backgroundColor: Colors.light.background,
         alignItems: 'center',
         borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
     },
     input: {
         flex: 1,
-        backgroundColor: '#fff',
         borderRadius: 25,
         paddingHorizontal: 15,
         paddingVertical: 10,
         maxHeight: 100,
         fontSize: 16,
         borderWidth: 1,
-        borderColor: '#eee',
     },
     sendBtn: {
         width: 48,
         height: 48,
         borderRadius: 24,
-        backgroundColor: Colors.light.tint,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 10,
@@ -313,23 +306,19 @@ const styles = StyleSheet.create({
     callLogBox: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.9)',
         paddingHorizontal: 15,
         paddingVertical: 10,
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: Colors.light.tint,
     },
     callLogIcon: {
         marginRight: 10,
     },
     callLogText: {
         fontSize: 14,
-        color: Colors.light.text,
         fontWeight: 'bold',
     },
     callLogSubtext: {
         fontSize: 11,
-        color: '#777',
     },
 });
