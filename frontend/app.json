@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "aba",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.astawusamsalu.aba",
@@ -52,12 +52,18 @@
           "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true
     },
-  
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/77d9f914-7250-4714-9b30-02afa7066a6d"
+    },
     "owner": "astawusamsalu",
     "extra": {
       "router": {},
