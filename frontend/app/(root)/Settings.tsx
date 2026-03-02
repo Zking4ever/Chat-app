@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet, Text, View, TouchableOpacity, ScrollView,
     SafeAreaView, Switch, Platform, TextInput, Image,
@@ -11,6 +11,9 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { userAPI } from '@/lib/api';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'self';
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
@@ -27,6 +30,44 @@ export default function Settings() {
     const [username, setUsername] = useState(user.username || '');
     const [profilePic, setProfilePic] = useState(user.profile_picture || '');
     const [saving, setSaving] = useState(false);
+
+    // Username availability
+    const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (!editVisible) return;
+
+        // Clear previous timer
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+
+        const trimmed = username.trim().toLowerCase();
+
+        if (!trimmed) {
+            setUsernameStatus('idle');
+            return;
+        }
+
+        // If the user hasn't changed their username, skip check
+        if (trimmed === (user.username || '').toLowerCase()) {
+            setUsernameStatus('self');
+            return;
+        }
+
+        setUsernameStatus('checking');
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const res = await userAPI.checkUsername(trimmed, user.id);
+                setUsernameStatus(res.data.available ? 'available' : 'taken');
+            } catch {
+                setUsernameStatus('idle');
+            }
+        }, 300);
+
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    }, [username, editVisible]);
 
     const pickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -47,18 +88,34 @@ export default function Settings() {
     };
 
     const handleSave = async () => {
+        if (usernameStatus === 'taken' || usernameStatus === 'checking') return;
         setSaving(true);
         try {
+            let picData: string | undefined = profilePic || undefined;
+
+            // Convert local file URI → base64 data URL so the backend can save it
+            if (
+                profilePic &&
+                (profilePic.startsWith('file://') || profilePic.startsWith('content://'))
+            ) {
+                const base64 = await FileSystem.readAsStringAsync(profilePic, {
+                    encoding: FileSystem.EncodingType.Base64,
+                });
+                picData = `data:image/jpeg;base64,${base64}`;
+            }
+
             const response = await userAPI.updateProfile(user.id, {
                 name: name.trim() || undefined,
                 username: username.trim() || undefined,
-                profile_picture: profilePic || undefined,
+                profile_picture: picData,
             });
             const updatedUser = { ...user, ...response.data };
             await setUser(updatedUser);
             setEditVisible(false);
-        } catch (error) {
-            Alert.alert('Error', 'Failed to update profile. Please try again.');
+        } catch (error: any) {
+            const msg =
+                error?.response?.data?.error || 'Failed to update profile. Please try again.';
+            Alert.alert('Error', msg);
         } finally {
             setSaving(false);
         }
@@ -68,8 +125,45 @@ export default function Settings() {
         setName(user.name || '');
         setUsername(user.username || '');
         setProfilePic(user.profile_picture || '');
+        setUsernameStatus('idle');
         setEditVisible(true);
     };
+
+    // ── Derived border / message for username field ──────────────────────────
+    const usernameBorderColor =
+        usernameStatus === 'available' ? '#22c55e'
+            : usernameStatus === 'taken' ? '#ef4444'
+                : colors.surface;
+
+    const usernameStatusNode = (() => {
+        switch (usernameStatus) {
+            case 'checking':
+                return (
+                    <View style={styles.statusRow}>
+                        <ActivityIndicator size="small" color={colors.textSecondary} style={{ marginRight: 5 }} />
+                        <Text style={[styles.statusText, { color: colors.textSecondary }]}>Checking…</Text>
+                    </View>
+                );
+            case 'available':
+                return (
+                    <View style={styles.statusRow}>
+                        <Ionicons name="checkmark-circle" size={14} color="#22c55e" style={{ marginRight: 4 }} />
+                        <Text style={[styles.statusText, { color: '#22c55e' }]}>Available</Text>
+                    </View>
+                );
+            case 'taken':
+                return (
+                    <View style={styles.statusRow}>
+                        <Ionicons name="close-circle" size={14} color="#ef4444" style={{ marginRight: 4 }} />
+                        <Text style={[styles.statusText, { color: '#ef4444' }]}>Already taken</Text>
+                    </View>
+                );
+            default:
+                return null;
+        }
+    })();
+
+    const isSaveDisabled = saving || usernameStatus === 'taken' || usernameStatus === 'checking';
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -193,7 +287,11 @@ export default function Settings() {
                             <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
                         </TouchableOpacity>
                         <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
-                        <TouchableOpacity onPress={handleSave} style={styles.modalSave} disabled={saving}>
+                        <TouchableOpacity
+                            onPress={handleSave}
+                            style={[styles.modalSave, isSaveDisabled && { opacity: 0.4 }]}
+                            disabled={isSaveDisabled}
+                        >
                             {saving
                                 ? <ActivityIndicator size="small" color={colors.tint} />
                                 : <Text style={[styles.modalSaveText, { color: colors.tint }]}>Save</Text>
@@ -233,7 +331,12 @@ export default function Settings() {
 
                         {/* Username */}
                         <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Username</Text>
-                        <View style={[styles.usernameRow, { backgroundColor: colors.surface, borderColor: colors.surface }]}>
+                        <View style={[
+                            styles.usernameRow,
+                            { backgroundColor: colors.surface, borderColor: usernameBorderColor },
+                            usernameStatus === 'available' && styles.usernameRowAvailable,
+                            usernameStatus === 'taken' && styles.usernameRowTaken,
+                        ]}>
                             <Text style={[styles.atSign, { color: colors.textSecondary }]}>@</Text>
                             <TextInput
                                 style={[styles.usernameInput, { color: colors.text }]}
@@ -243,7 +346,18 @@ export default function Settings() {
                                 placeholderTextColor={colors.textSecondary}
                                 autoCapitalize="none"
                             />
+                            {usernameStatus === 'checking' && (
+                                <ActivityIndicator size="small" color={colors.textSecondary} />
+                            )}
+                            {usernameStatus === 'available' && (
+                                <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
+                            )}
+                            {usernameStatus === 'taken' && (
+                                <Ionicons name="close-circle" size={18} color="#ef4444" />
+                            )}
                         </View>
+                        {/* Status message below the username row */}
+                        {usernameStatusNode}
                     </ScrollView>
                 </SafeAreaView>
             </Modal>
@@ -358,8 +472,17 @@ const styles = StyleSheet.create({
     },
     usernameRow: {
         width: '100%', flexDirection: 'row', alignItems: 'center',
-        borderRadius: 12, paddingHorizontal: 15, borderWidth: 1, marginBottom: 20,
+        borderRadius: 12, paddingHorizontal: 15, borderWidth: 1.5, marginBottom: 6,
     },
+    usernameRowAvailable: { borderColor: '#22c55e' },
+    usernameRowTaken: { borderColor: '#ef4444' },
     atSign: { fontSize: 18, marginRight: 4 },
-    usernameInput: { flex: 1, paddingVertical: 13, fontSize: 16 },
+    usernameInput: { flex: 1, paddingVertical: 13, fontSize: 16, outlineWidth: 0, outlineColor: 'transparent', marginVertical: 2 },
+
+    // Username status
+    statusRow: {
+        flexDirection: 'row', alignItems: 'center',
+        alignSelf: 'flex-start', marginBottom: 20, marginLeft: 4,
+    },
+    statusText: { fontSize: 12, fontWeight: '500' },
 });

@@ -30,6 +30,8 @@ export const userAPI = {
         api.patch(`/users/${userId}`, data),
     searchUsers: (query: string) =>
         api.get(`/users/search`, { params: { q: query } }),
+    checkUsername: (username: string, excludeId: number) =>
+        api.get(`/users/check-username`, { params: { username, exclude_id: excludeId } }),
 };
 
 export default api;

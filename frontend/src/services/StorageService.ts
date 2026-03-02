@@ -4,7 +4,10 @@ import { UserInter } from '@/constants/types';
 const KEYS = {
     LOGGED_USER: 'logged_user',
     APP_THEME: 'app_theme',
+    RECENT_CONTACTS: 'recent_contacts',
 };
+
+const MAX_RECENT = 10;
 
 const memoryStore: Record<string, string> = {
     [KEYS.APP_THEME]: 'dark',
@@ -15,16 +18,16 @@ export const StorageService = {
         try {
             const value = await AsyncStorage.getItem(KEYS.APP_THEME);
             if (value === 'light' || value === 'dark') return value;
-            return (memoryStore[KEYS.APP_THEME] as any) || 'dark';
-        } catch (error) {
-            return (memoryStore[KEYS.APP_THEME] as any) || 'dark';
+            return (memoryStore[KEYS.APP_THEME] as 'light' | 'dark') || 'dark';
+        } catch {
+            return (memoryStore[KEYS.APP_THEME] as 'light' | 'dark') || 'dark';
         }
     },
 
     async setTheme(theme: 'light' | 'dark'): Promise<void> {
         try {
             await AsyncStorage.setItem(KEYS.APP_THEME, theme);
-        } catch (error) {
+        } catch {
             console.warn('Failed to save theme to AsyncStorage');
         }
         memoryStore[KEYS.APP_THEME] = theme;
@@ -54,6 +57,39 @@ export const StorageService = {
             await AsyncStorage.removeItem(KEYS.LOGGED_USER);
         } catch (error) {
             console.error('Failed to clear user from AsyncStorage:', error);
+        }
+    },
+
+    // ── Recent Contacts ────────────────────────────────────────────────────────
+
+    async getRecentContacts(): Promise<UserInter[]> {
+        try {
+            const json = await AsyncStorage.getItem(KEYS.RECENT_CONTACTS);
+            if (!json) return [];
+            return JSON.parse(json) as UserInter[];
+        } catch {
+            return [];
+        }
+    },
+
+    async addRecentContact(user: UserInter): Promise<void> {
+        try {
+            const current = await StorageService.getRecentContacts();
+            const filtered = current.filter((u: UserInter) => u.id !== user.id);
+            const updated = [user, ...filtered].slice(0, MAX_RECENT);
+            await AsyncStorage.setItem(KEYS.RECENT_CONTACTS, JSON.stringify(updated));
+        } catch (error) {
+            console.warn('Failed to add recent contact:', error);
+        }
+    },
+
+    async removeRecentContact(userId: number): Promise<void> {
+        try {
+            const current = await StorageService.getRecentContacts();
+            const updated = current.filter((u: UserInter) => u.id !== userId);
+            await AsyncStorage.setItem(KEYS.RECENT_CONTACTS, JSON.stringify(updated));
+        } catch (error) {
+            console.warn('Failed to remove recent contact:', error);
         }
     },
 };

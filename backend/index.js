@@ -16,21 +16,26 @@ const io = new Server(server, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 // Routes
 const authRoutes = require('./routes/auth');
 const contactRoutes = require('./routes/contacts');
 const chatRoutes = require('./routes/chat');
 const updateRoutes = require('./routes/updates');
+const userRoutes = require('./routes/users');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/updates', updateRoutes);
+app.use('/api/users', userRoutes);
 
 // Static folder for updates (bundles and assets)
 app.use('/updates', express.static(path.join(__dirname, 'public/updates')));
+
+// Static folder for uploaded profile images
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 // Basic sanity check
