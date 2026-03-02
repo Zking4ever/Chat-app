@@ -8,7 +8,8 @@ router.get('/conversations/:userId', (req, res) => {
     try {
         const stmt = db.prepare(`
             SELECT c.*, 
-            u.id as participant_id, u.name as participant_name, u.is_online, u.profile_picture,
+            u.id as participant_id, u.name as participant_name, u.is_online,
+            u.profile_picture as participant_picture,
             (SELECT text FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message,
             (SELECT sent_at FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message_time
             FROM Conversations c
@@ -40,7 +41,7 @@ router.post('/get-or-create', (req, res) => {
         `).get(user1, user2);
 
         if (existing) {
-            return res.json({ conversation_id: existing.conversation_id });
+            return res.json({ id: existing.conversation_id });
         }
 
         // Create new
@@ -52,7 +53,7 @@ router.post('/get-or-create', (req, res) => {
         addPart.run(convoId, user1);
         addPart.run(convoId, user2);
 
-        res.json({ conversation_id: convoId });
+        res.json({ id: convoId });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Database error' });

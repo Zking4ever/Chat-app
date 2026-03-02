@@ -30,7 +30,7 @@ export const Colors = {
     headerBackground: '#000000',
     headerText: '#FFFFFF',
     primaryGradient: ['#FFFFFF', '#C0C0C0'],
-    bubbleSent: '#FFFFFF',
+    bubbleSent: '#211010ff',
     bubbleReceived: '#1A1A1A',
     inputBackground: '#1A1A1A',
     inputBorder: '#333333',

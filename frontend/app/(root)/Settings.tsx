@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { userAPI } from '@/lib/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import { getImageUrl } from '@/lib/imageUrl';
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'self';
 
@@ -186,8 +187,8 @@ export default function Settings() {
                         activeOpacity={0.75}
                     >
                         <View style={styles.avatarWrapper}>
-                            {user.profile_picture ? (
-                                <Image source={{ uri: user.profile_picture }} style={styles.avatar} />
+                            {getImageUrl(user.profile_picture) ? (
+                                <Image source={{ uri: getImageUrl(user.profile_picture) }} style={styles.avatar} />
                             ) : (
                                 <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
                                     <Text style={styles.avatarInitial}>
@@ -303,7 +304,7 @@ export default function Settings() {
                         {/* Avatar picker */}
                         <TouchableOpacity onPress={pickImage} style={styles.avatarPickerWrapper}>
                             {profilePic ? (
-                                <Image source={{ uri: profilePic }} style={styles.avatarLarge} />
+                                <Image source={{ uri: getImageUrl(profilePic) }} style={styles.avatarLarge} />
                             ) : (
                                 <View style={[styles.avatarLargeFallback, { backgroundColor: colors.tint }]}>
                                     <Text style={styles.avatarLargeInitial}>

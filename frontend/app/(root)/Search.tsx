@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { userAPI, chatAPI } from '@/lib/api';
 import { StorageService } from '@/src/services/StorageService';
 import { UserInter } from '@/constants/types';
+import { getImageUrl } from '@/lib/imageUrl';
 
 export default function Search() {
     const { colors } = useTheme();
@@ -61,7 +62,7 @@ export default function Search() {
             await StorageService.addRecentContact(targetUser as UserInter);
             setRecentContacts(await StorageService.getRecentContacts());
 
-            router.replace({
+            router.push({
                 pathname: '/(root)/Chat',
                 params: {
                     convoId: String(convoId),
@@ -204,8 +205,8 @@ function AnimatedContactRow({
                 delayLongPress={500}
                 activeOpacity={0.7}
             >
-                {item.profile_picture ? (
-                    <Image source={{ uri: item.profile_picture }} style={styles.avatar} />
+                {getImageUrl(item.profile_picture) ? (
+                    <Image source={{ uri: getImageUrl(item.profile_picture) }} style={styles.avatar} />
                 ) : (
                     <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
                         <Text style={styles.avatarInitial}>

@@ -2,6 +2,7 @@ import { useNavigation } from 'expo-router';
 import React, { use, useEffect, useState } from 'react';
 import {
   FlatList,
+  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import SocketService from '@/src/services/SocketService';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { getImageUrl } from '@/lib/imageUrl';
 
 export default function Home() {
   const { user } = useAuth();
@@ -29,6 +31,7 @@ export default function Home() {
     try {
       const response = await chatAPI.getConversations(id);
       setConversations(response.data);
+      console.log(response.data);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     }
@@ -99,12 +102,24 @@ export default function Home() {
         participantName: item.participant_name || `Chat #${item.id}`
       })}
     >
-      <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surface }]}>
-        {item.is_online && <View style={styles.onlineBadge} />}
+      <View style={styles.avatarWrapper}>
+        {getImageUrl(item.profile_picture) ? (
+          <Image
+            source={{ uri: getImageUrl(item.profile_picture) }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
+            <Text style={styles.avatarInitial}>
+              {(item.participant_name || '?')[0]?.toUpperCase()}
+            </Text>
+          </View>
+        )}
+        {item.is_online ? <View style={styles.onlineBadge} /> : null}
       </View>
       <View style={styles.convoDetails}>
         <View style={styles.convoHeader}>
-          <Text style={[styles.convoName, { color: colors.text }]}>{item.name || `Chat #${item.id}`}</Text>
+          <Text style={[styles.convoName, { color: colors.text }]}>{item.participant_name || `Chat #${item.id}`}</Text>
           <Text style={[styles.convoTime, { color: colors.textSecondary }]}>
             {item.last_message_time ? new Date(item.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
           </Text>
@@ -185,12 +200,29 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     alignItems: 'center',
   },
-  avatarPlaceholder: {
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 15,
+    width: 50,
+    height: 50,
+  },
+  avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    marginRight: 15,
-    position: 'relative',
+    alignSelf: 'center',
+  },
+  avatarFallback: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarInitial: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   onlineBadge: {
     position: 'absolute',

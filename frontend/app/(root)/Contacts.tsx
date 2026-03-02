@@ -81,7 +81,11 @@ export default function ContactsScreen() {
 
         try {
             const response = await chatAPI.getOrCreateConvo(user.id, contact.registeredUser.id);
-            navigation.navigate('Chat' as never, { convoId: response.data.conversation_id } as never);
+            navigation.navigate('Chat' as never, {
+                convoId: response.data.id,
+                participantId: contact.registeredUser.id,
+                participantName: contact.registeredUser.name || `${contact.firstName} ${contact.lastName}`.trim() || `User #${contact.registeredUser.id}`,
+            } as never);
         } catch (error) {
             Alert.alert('Error', 'Failed to start chat');
         }
