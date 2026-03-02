@@ -2,64 +2,63 @@ import { UserInter } from '@/constants/types';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import StorageService from '@/src/services/StorageService';
 
+const EMPTY_USER: UserInter = {
+  id: -1,
+  is_online: 0,
+  last_seen: '',
+  name: null,
+  phone: '',
+  profile_picture: '',
+  username: '',
+  created_at: 'null',
+};
+
 interface AuthContextType {
   user: UserInter;
-  setUser: React.Dispatch<React.SetStateAction<UserInter>>;
-  hasSeenOnboarding: boolean | null;
-  completeOnboarding: () => Promise<void>;
+  setUser: (user: UserInter) => Promise<void>;
   logout: () => Promise<void>;
+  /** true while restoring the session from storage on first mount */
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserInter>({
-    id: -1,
-    is_online: 0,
-    last_seen: '',
-    name: null,
-    phone: '',
-    profile_picture: '',
-    username: '',
-    created_at: 'null'
-  });
+  const [user, setUserState] = useState<UserInter>(EMPTY_USER);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
-
+  // Restore persisted session on mount
   useEffect(() => {
-    const checkOnboarding = async () => {
-      const isFirstTime = await StorageService.isFirstTimeUser();
-      setHasSeenOnboarding(!isFirstTime);
-    };
-    checkOnboarding();
+    StorageService.getUser()
+      .then((saved) => {
+        if (saved) setUserState(saved);
+      })
+      .catch((e) => console.warn('Failed to restore session:', e))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const completeOnboarding = async () => {
-    await StorageService.markOnboardingComplete();
-    setHasSeenOnboarding(true);
+  /** Call after a successful login – persists the user to storage. */
+  const setUser = async (newUser: UserInter) => {
+    setUserState(newUser);
+    if (newUser.id !== -1) {
+      await StorageService.saveUser(newUser);
+    } else {
+      await StorageService.clearUser();
+    }
   };
 
+  /** Clears stored user and resets state → routing will redirect to Welcome. */
   const logout = async () => {
-    setUser({
-      id: -1,
-      is_online: 0,
-      last_seen: '',
-      name: null,
-      phone: '',
-      profile_picture: '',
-      username: '',
-      created_at: 'null'
-    });
-    // Optional: await StorageService.clearAll(); or something similar
+    await StorageService.clearUser();
+    setUserState(EMPTY_USER);
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, hasSeenOnboarding, completeOnboarding, logout }}>
+    <AuthContext.Provider value={{ user, setUser, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
 }
-
 
 export function useAuth() {
   const context = useContext(AuthContext);

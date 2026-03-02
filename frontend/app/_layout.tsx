@@ -15,7 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootNavigation() {
-  const { user, hasSeenOnboarding } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
   const [isMounted, setIsMounted] = useState(false);
@@ -89,37 +89,25 @@ function RootNavigation() {
   };
 
   useEffect(() => {
-    if (!isMounted || hasSeenOnboarding === null) return;
-
-    // Hide splash screen once we know where we're going
+    if (!isMounted || isLoading) return;
 
     const inAuthScreens =
       segments[0] === 'Welcome' ||
       segments[0] === 'Login' ||
       segments[0] === 'Register';
 
-    // 1. Logged in users go home
     if (user.id !== -1 && inAuthScreens) {
       router.replace('/(root)/Home');
     }
 
-    // 2. Not logged in users logic
-    if (user.id === -1) {
-      if (!hasSeenOnboarding) {
-        if (segments[0] !== 'Welcome') {
-          router.replace('/Welcome');
-        }
-      } else {
-        if (segments[0] === 'Welcome' || !inAuthScreens) {
-          router.replace('/Login');
-        }
-      }
+    if (user.id === -1 && !inAuthScreens) {
+      router.replace('/Welcome');
     }
-  }, [user.id, isMounted, hasSeenOnboarding, segments]);
+  }, [user.id, isMounted, isLoading, segments]);
 
   const { theme } = useTheme();
 
-  if (!isMounted || hasSeenOnboarding === null) return null;
+  if (!isMounted || isLoading) return null;
 
   return (
     <>

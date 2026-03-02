@@ -1,12 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserInter } from '@/constants/types';
 
 const KEYS = {
-    HAS_SEEN_ONBOARDING: 'has_seen_onboarding',
+    LOGGED_USER: 'logged_user',
     APP_THEME: 'app_theme',
 };
 
 const memoryStore: Record<string, string> = {
-    [KEYS.APP_THEME]: 'dark', // Default to dark
+    [KEYS.APP_THEME]: 'dark',
 };
 
 export const StorageService = {
@@ -28,38 +29,33 @@ export const StorageService = {
         }
         memoryStore[KEYS.APP_THEME] = theme;
     },
-    async isFirstTimeUser(): Promise<boolean> {
-        try {
-            const value = await AsyncStorage.getItem(KEYS.HAS_SEEN_ONBOARDING);
-            if (value !== null) return false;
 
-            // Check memory fallback if AsyncStorage returned null
-            return memoryStore[KEYS.HAS_SEEN_ONBOARDING] === undefined;
+    async saveUser(user: UserInter): Promise<void> {
+        try {
+            await AsyncStorage.setItem(KEYS.LOGGED_USER, JSON.stringify(user));
         } catch (error) {
-            console.warn('AsyncStorage failure, using memory fallback:', error);
-            return memoryStore[KEYS.HAS_SEEN_ONBOARDING] === undefined;
+            console.warn('Failed to save user to AsyncStorage:', error);
         }
     },
 
-    async markOnboardingComplete(): Promise<void> {
+    async getUser(): Promise<UserInter | null> {
         try {
-            await AsyncStorage.setItem(KEYS.HAS_SEEN_ONBOARDING, 'true');
+            const json = await AsyncStorage.getItem(KEYS.LOGGED_USER);
+            if (!json) return null;
+            return JSON.parse(json) as UserInter;
         } catch (error) {
-            console.warn('Failed to save to AsyncStorage, saving to memory:', error);
+            console.warn('Failed to read user from AsyncStorage:', error);
+            return null;
         }
-        // Always update memory store as a reliable runtime fallback
-        memoryStore[KEYS.HAS_SEEN_ONBOARDING] = 'true';
     },
 
-    async clearOnboardingStatus(): Promise<void> {
+    async clearUser(): Promise<void> {
         try {
-            await AsyncStorage.removeItem(KEYS.HAS_SEEN_ONBOARDING);
+            await AsyncStorage.removeItem(KEYS.LOGGED_USER);
         } catch (error) {
-            console.error('Error clearing onboarding status:', error);
+            console.error('Failed to clear user from AsyncStorage:', error);
         }
-        delete memoryStore[KEYS.HAS_SEEN_ONBOARDING];
-    }
+    },
 };
-
 
 export default StorageService;

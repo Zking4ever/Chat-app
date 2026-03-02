@@ -1,14 +1,19 @@
-import { Platform } from 'react-native';
+import {
+    RTCPeerConnection,
+    RTCIceCandidate,
+    RTCSessionDescription,
+    mediaDevices
+} from 'react-native-webrtc';
 
 export class WebRTCService {
-    private peerConnection: RTCPeerConnection | null = null;
-    private localStream: MediaStream | null = null;
-    private remoteStream: MediaStream | null = null;
-    private onRemoteStreamCallback: ((stream: MediaStream) => void) | null = null;
+    private peerConnection: any = null;
+    private localStream: any = null;
+    private remoteStream: any = null;
+    private onRemoteStreamCallback: ((stream: any) => void) | null = null;
     private onIceCandidateCallback: ((candidate: any) => void) | null = null;
-    private onConnectionStateCallback: ((state: RTCPeerConnectionState) => void) | null = null;
+    private onConnectionStateCallback: ((state: string) => void) | null = null;
 
-    private config: RTCConfiguration = {
+    private config: any = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
@@ -21,27 +26,24 @@ export class WebRTCService {
     }
 
     private initializePeerConnection() {
-        if (typeof RTCPeerConnection !== 'undefined') {
-            this.peerConnection = new RTCPeerConnection(this.config);
-            this.setupListeners();
-            console.log('Web RTCPeerConnection initialized');
-        } else {
-            console.warn('RTCPeerConnection is not available in this environment.');
-        }
+        this.peerConnection = new RTCPeerConnection(this.config);
+        this.setupListeners();
+        console.log('Native RTCPeerConnection initialized');
     }
 
     private setupListeners() {
         if (!this.peerConnection) return;
 
-        this.peerConnection.onicecandidate = (event) => {
+        this.peerConnection.onicecandidate = (event: any) => {
             if (event.candidate && this.onIceCandidateCallback) {
                 this.onIceCandidateCallback(event.candidate);
             }
         };
 
-        this.peerConnection.ontrack = (event) => {
-            if (event.streams && event.streams[0]) {
-                this.remoteStream = event.streams[0];
+        this.peerConnection.onaddstream = (event: any) => {
+            console.log('Native OnAddStream event:', event.stream);
+            if (event.stream) {
+                this.remoteStream = event.stream;
                 if (this.onRemoteStreamCallback) {
                     this.onRemoteStreamCallback(this.remoteStream);
                 }
@@ -60,20 +62,19 @@ export class WebRTCService {
 
     async getLocalStream(video: boolean = true) {
         try {
-            if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-                this.localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false
-                });
+            this.localStream = await mediaDevices.getUserMedia({
+                audio: true,
+                video: video ? {
+                    facingMode: 'user',
+                    width: 640,
+                    height: 480,
+                    frameRate: 30
+                } : false
+            });
 
-                if (this.localStream && this.peerConnection) {
-                    const senders = this.peerConnection.getSenders();
-                    senders.forEach(sender => this.peerConnection?.removeTrack(sender));
-                    this.localStream.getTracks().forEach(track => {
-                        this.peerConnection?.addTrack(track, this.localStream!);
-                    });
-                    return this.localStream;
-                }
+            if (this.localStream && this.peerConnection) {
+                this.peerConnection.addStream(this.localStream);
+                return this.localStream;
             }
             return null;
         } catch (error) {
@@ -94,7 +95,7 @@ export class WebRTCService {
         }
     }
 
-    async handleOffer(offer: RTCSessionDescriptionInit) {
+    async handleOffer(offer: any) {
         if (!this.peerConnection) return null;
         try {
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -107,7 +108,7 @@ export class WebRTCService {
         }
     }
 
-    async handleAnswer(answer: RTCSessionDescriptionInit) {
+    async handleAnswer(answer: any) {
         if (!this.peerConnection) return;
         try {
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
@@ -116,7 +117,7 @@ export class WebRTCService {
         }
     }
 
-    async addIceCandidate(candidate: RTCIceCandidateInit) {
+    async addIceCandidate(candidate: any) {
         if (!this.peerConnection) return;
         try {
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
@@ -127,7 +128,7 @@ export class WebRTCService {
 
     toggleAudio(enabled: boolean) {
         if (this.localStream) {
-            this.localStream.getAudioTracks().forEach(track => {
+            this.localStream.getAudioTracks().forEach((track: any) => {
                 track.enabled = enabled;
             });
         }
@@ -135,13 +136,13 @@ export class WebRTCService {
 
     toggleVideo(enabled: boolean) {
         if (this.localStream) {
-            this.localStream.getVideoTracks().forEach(track => {
+            this.localStream.getVideoTracks().forEach((track: any) => {
                 track.enabled = enabled;
             });
         }
     }
 
-    onRemoteStream(callback: (stream: MediaStream) => void) {
+    onRemoteStream(callback: (stream: any) => void) {
         this.onRemoteStreamCallback = callback;
         if (this.remoteStream) {
             callback(this.remoteStream);
@@ -152,13 +153,13 @@ export class WebRTCService {
         this.onIceCandidateCallback = callback;
     }
 
-    onConnectionState(callback: (state: RTCPeerConnectionState) => void) {
+    onConnectionState(callback: (state: string) => void) {
         this.onConnectionStateCallback = callback;
     }
 
     close() {
         if (this.localStream) {
-            this.localStream.getTracks().forEach(track => track.stop());
+            this.localStream.getTracks().forEach((track: any) => track.stop());
         }
         if (this.peerConnection) {
             this.peerConnection.close();

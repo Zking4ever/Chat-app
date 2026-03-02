@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import {
@@ -19,6 +19,7 @@ export default function ChatScreen() {
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState('');
     const navigation = useNavigation();
+    const router = useRouter();
     const socket = useRef<any>(null);
 
     const [isTyping, setIsTyping] = useState(false);
@@ -125,14 +126,17 @@ export default function ChatScreen() {
     };
 
     const startCall = (type: 'audio' | 'video') => {
-        navigation.navigate('Call' as any, {
-            convoId,
-            participantId,
-            participantName,
-            callType: type,
-            incoming: 'false',
-            fromName: user.name
-        });
+        router.push({
+            pathname: '/Call',
+            params: {
+                convoId: String(convoId),
+                participantId: String(participantId),
+                participantName: String(participantName),
+                callType: type,
+                incoming: 'false',
+                fromName: user.name
+            }
+        } as any);
     };
 
     const renderItem = ({ item }: any) => {

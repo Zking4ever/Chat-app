@@ -32,7 +32,7 @@ export default function Login() {
     try {
       const response = await authAPI.login(phoneNumber);
       const user = response.data;
-      setUser(user);
+      await setUser(user);
     } catch (error) {
       Alert.alert('Error', 'Verification failed');
     } finally {
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: '#0b0505',
+    color: '#ffff',
     fontSize: 18,
     fontWeight: 'bold',
   },

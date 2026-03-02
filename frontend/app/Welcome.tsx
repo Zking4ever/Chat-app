@@ -189,7 +189,6 @@ const PaginationDot = ({ index, scrollX }: any) => {
 
 export default function Welcome() {
   const router = useRouter();
-  const { completeOnboarding } = useAuth();
   const { t, i18n } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -218,7 +217,6 @@ export default function Welcome() {
   }).current;
 
   const handleGetStarted = async () => {
-    await completeOnboarding();
     router.replace('/Login');
   };
 
