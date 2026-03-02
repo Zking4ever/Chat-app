@@ -1,36 +1,79 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-    StyleSheet,
-    Text,
-    View,
-    TouchableOpacity,
-    ScrollView,
-    SafeAreaView,
-    Switch,
-    Platform
+    StyleSheet, Text, View, TouchableOpacity, ScrollView,
+    SafeAreaView, Switch, Platform, TextInput, Image,
+    ActivityIndicator, Alert, Modal
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { userAPI } from '@/lib/api';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
     const { theme, colors, toggleTheme } = useTheme();
-    const { logout } = useAuth();
+    const { logout, user, setUser } = useAuth();
     const router = useRouter();
 
+    const isDarkMode = theme === 'dark';
     const currentLanguage = i18n.language;
 
-    const changeLanguage = (lng: string) => {
-        i18n.changeLanguage(lng);
+    // Profile edit state
+    const [editVisible, setEditVisible] = useState(false);
+    const [name, setName] = useState(user.name || '');
+    const [username, setUsername] = useState(user.username || '');
+    const [profilePic, setProfilePic] = useState(user.profile_picture || '');
+    const [saving, setSaving] = useState(false);
+
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission needed', 'Please allow access to your photo library.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.7,
+            base64: false,
+        });
+        if (!result.canceled && result.assets[0]) {
+            setProfilePic(result.assets[0].uri);
+        }
     };
 
-    const isDarkMode = theme === 'dark';
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const response = await userAPI.updateProfile(user.id, {
+                name: name.trim() || undefined,
+                username: username.trim() || undefined,
+                profile_picture: profilePic || undefined,
+            });
+            const updatedUser = { ...user, ...response.data };
+            await setUser(updatedUser);
+            setEditVisible(false);
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update profile. Please try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const openEdit = () => {
+        setName(user.name || '');
+        setUsername(user.username || '');
+        setProfilePic(user.profile_picture || '');
+        setEditVisible(true);
+    };
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            {/* Header */}
             <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={colors.headerText} />
@@ -39,11 +82,50 @@ export default function Settings() {
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
+
+                {/* ── Profile Section ─────────────────────────────── */}
+                <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: colors.tint }]}>Profile</Text>
+                    <TouchableOpacity
+                        style={[styles.profileRow, { backgroundColor: colors.surface }]}
+                        onPress={openEdit}
+                        activeOpacity={0.75}
+                    >
+                        <View style={styles.avatarWrapper}>
+                            {user.profile_picture ? (
+                                <Image source={{ uri: user.profile_picture }} style={styles.avatar} />
+                            ) : (
+                                <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
+                                    <Text style={styles.avatarInitial}>
+                                        {(user.name || user.username || '?')[0].toUpperCase()}
+                                    </Text>
+                                </View>
+                            )}
+                            <View style={[styles.editBadge, { backgroundColor: colors.tint }]}>
+                                <Ionicons name="pencil" size={10} color="#fff" />
+                            </View>
+                        </View>
+                        <View style={styles.profileInfo}>
+                            <Text style={[styles.profileName, { color: colors.text }]}>
+                                {user.name || 'No name set'}
+                            </Text>
+                            <Text style={[styles.profileUsername, { color: colors.textSecondary }]}>
+                                {user.username ? `@${user.username}` : 'No username set'}
+                            </Text>
+                            <Text style={[styles.profilePhone, { color: colors.textSecondary }]}>
+                                {user.phone}
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* ── Theme ─────────────────────────────────────────── */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.tint }]}>{t('settings.theme')}</Text>
                     <View style={[styles.settingRow, { backgroundColor: colors.surface }]}>
                         <View style={styles.settingInfo}>
-                            <Ionicons name={isDarkMode ? "moon" : "sunny"} size={22} color={colors.tint} />
+                            <Ionicons name={isDarkMode ? 'moon' : 'sunny'} size={22} color={colors.tint} />
                             <Text style={[styles.settingLabel, { color: colors.text }]}>
                                 {isDarkMode ? t('settings.dark') : t('settings.light')}
                             </Text>
@@ -57,12 +139,13 @@ export default function Settings() {
                     </View>
                 </View>
 
+                {/* ── Language ──────────────────────────────────────── */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.tint }]}>{t('settings.language')}</Text>
                     <View style={[styles.settingRow, { backgroundColor: colors.surface }]}>
                         <TouchableOpacity
                             style={[styles.langOption, currentLanguage === 'en' && styles.activeLangOption]}
-                            onPress={() => changeLanguage('en')}
+                            onPress={() => i18n.changeLanguage('en')}
                         >
                             <Text style={[styles.langText, { color: currentLanguage === 'en' ? colors.tint : colors.text }]}>EN</Text>
                             {currentLanguage === 'en' && <Ionicons name="checkmark" size={18} color={colors.tint} />}
@@ -70,7 +153,7 @@ export default function Settings() {
                         <View style={styles.separator} />
                         <TouchableOpacity
                             style={[styles.langOption, currentLanguage === 'am' && styles.activeLangOption]}
-                            onPress={() => changeLanguage('am')}
+                            onPress={() => i18n.changeLanguage('am')}
                         >
                             <Text style={[styles.langText, { color: currentLanguage === 'am' ? colors.tint : colors.text }]}>አማ</Text>
                             {currentLanguage === 'am' && <Ionicons name="checkmark" size={18} color={colors.tint} />}
@@ -78,6 +161,7 @@ export default function Settings() {
                     </View>
                 </View>
 
+                {/* ── About ─────────────────────────────────────────── */}
                 <View style={styles.section}>
                     <TouchableOpacity
                         style={[styles.settingRow, { backgroundColor: colors.surface }]}
@@ -91,6 +175,7 @@ export default function Settings() {
                     </TouchableOpacity>
                 </View>
 
+                {/* ── Logout ────────────────────────────────────────── */}
                 <TouchableOpacity
                     style={[styles.logoutButton, { borderColor: colors.tint }]}
                     onPress={logout}
@@ -99,98 +184,182 @@ export default function Settings() {
                     <Text style={[styles.logoutText, { color: colors.tint }]}>{t('settings.logout')}</Text>
                 </TouchableOpacity>
             </ScrollView>
+
+            {/* ── Edit Profile Modal ──────────────────────────────── */}
+            <Modal visible={editVisible} animationType="slide" presentationStyle="pageSheet">
+                <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+                    <View style={[styles.modalHeader, { borderBottomColor: colors.surface }]}>
+                        <TouchableOpacity onPress={() => setEditVisible(false)} style={styles.modalCancel}>
+                            <Text style={[styles.modalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
+                        <TouchableOpacity onPress={handleSave} style={styles.modalSave} disabled={saving}>
+                            {saving
+                                ? <ActivityIndicator size="small" color={colors.tint} />
+                                : <Text style={[styles.modalSaveText, { color: colors.tint }]}>Save</Text>
+                            }
+                        </TouchableOpacity>
+                    </View>
+
+                    <ScrollView contentContainerStyle={styles.modalBody}>
+                        {/* Avatar picker */}
+                        <TouchableOpacity onPress={pickImage} style={styles.avatarPickerWrapper}>
+                            {profilePic ? (
+                                <Image source={{ uri: profilePic }} style={styles.avatarLarge} />
+                            ) : (
+                                <View style={[styles.avatarLargeFallback, { backgroundColor: colors.tint }]}>
+                                    <Text style={styles.avatarLargeInitial}>
+                                        {(name || username || '?')[0]?.toUpperCase() || '?'}
+                                    </Text>
+                                </View>
+                            )}
+                            <View style={[styles.avatarPickerBadge, { backgroundColor: colors.tint }]}>
+                                <Ionicons name="camera" size={16} color="#fff" />
+                            </View>
+                        </TouchableOpacity>
+                        <Text style={[styles.avatarPickerHint, { color: colors.textSecondary }]}>
+                            Tap to change photo
+                        </Text>
+
+                        {/* Name */}
+                        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Display Name</Text>
+                        <TextInput
+                            style={[styles.fieldInput, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.surface }]}
+                            value={name}
+                            onChangeText={setName}
+                            placeholder="Your name"
+                            placeholderTextColor={colors.textSecondary}
+                        />
+
+                        {/* Username */}
+                        <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Username</Text>
+                        <View style={[styles.usernameRow, { backgroundColor: colors.surface, borderColor: colors.surface }]}>
+                            <Text style={[styles.atSign, { color: colors.textSecondary }]}>@</Text>
+                            <TextInput
+                                style={[styles.usernameInput, { color: colors.text }]}
+                                value={username}
+                                onChangeText={(t) => setUsername(t.replace(/[^a-z0-9_.]/gi, '').toLowerCase())}
+                                placeholder="username"
+                                placeholderTextColor={colors.textSecondary}
+                                autoCapitalize="none"
+                            />
+                        </View>
+                    </ScrollView>
+                </SafeAreaView>
+            </Modal>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     header: {
-        height: 60,
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        height: 60, flexDirection: 'row', alignItems: 'center',
+        paddingHorizontal: 15, elevation: 4,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1, shadowRadius: 2,
     },
-    backButton: {
-        marginRight: 15,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    scrollContent: {
-        padding: 20,
-    },
-    section: {
-        marginBottom: 25,
-    },
+    backButton: { marginRight: 15 },
+    title: { fontSize: 20, fontWeight: 'bold' },
+    scrollContent: { padding: 20 },
+    section: { marginBottom: 25 },
     sectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        marginLeft: 5,
-        textTransform: 'uppercase',
+        fontSize: 12, fontWeight: 'bold', marginBottom: 10,
+        marginLeft: 5, textTransform: 'uppercase', letterSpacing: 1,
     },
+
+    // Profile row
+    profileRow: {
+        flexDirection: 'row', alignItems: 'center', padding: 15,
+        borderRadius: 15, elevation: 2,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05, shadowRadius: 2,
+    },
+    avatarWrapper: { position: 'relative', marginRight: 15 },
+    avatar: { width: 56, height: 56, borderRadius: 28 },
+    avatarFallback: {
+        width: 56, height: 56, borderRadius: 28,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    avatarInitial: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+    editBadge: {
+        position: 'absolute', bottom: 0, right: 0,
+        width: 18, height: 18, borderRadius: 9,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    profileInfo: { flex: 1 },
+    profileName: { fontSize: 16, fontWeight: 'bold' },
+    profileUsername: { fontSize: 14, marginTop: 2 },
+    profilePhone: { fontSize: 12, marginTop: 2 },
+
+    // Generic setting row
     settingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 15,
-        borderRadius: 15,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        padding: 15, borderRadius: 15, elevation: 2,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05, shadowRadius: 2,
     },
-    settingInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    settingLabel: {
-        fontSize: 16,
-        marginLeft: 12,
-        fontWeight: '500',
-    },
+    settingInfo: { flexDirection: 'row', alignItems: 'center' },
+    settingLabel: { fontSize: 16, marginLeft: 12, fontWeight: '500' },
+
+    // Language
     langOption: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
+        flex: 1, flexDirection: 'row', alignItems: 'center',
+        justifyContent: 'center', paddingVertical: 10,
     },
-    activeLangOption: {
-        backgroundColor: 'rgba(0,0,0,0.02)',
-    },
-    langText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginRight: 8,
-    },
-    separator: {
-        width: 1,
-        height: '60%',
-        backgroundColor: 'rgba(0,0,0,0.1)',
-    },
+    activeLangOption: { backgroundColor: 'rgba(0,0,0,0.02)' },
+    langText: { fontSize: 16, fontWeight: 'bold', marginRight: 8 },
+    separator: { width: 1, height: '60%', backgroundColor: 'rgba(0,0,0,0.1)' },
+
+    // Logout
     logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 20,
-        padding: 15,
-        borderRadius: 15,
-        borderWidth: 1,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+        marginTop: 20, padding: 15, borderRadius: 15, borderWidth: 1,
     },
-    logoutText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 10,
-    }
+    logoutText: { fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+
+    // Modal
+    modalContainer: { flex: 1 },
+    modalHeader: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1,
+    },
+    modalCancel: { width: 70 },
+    modalCancelText: { fontSize: 16 },
+    modalTitle: { fontSize: 17, fontWeight: '600' },
+    modalSave: { width: 70, alignItems: 'flex-end' },
+    modalSaveText: { fontSize: 16, fontWeight: '700' },
+    modalBody: { padding: 24, alignItems: 'center' },
+
+    // Avatar picker
+    avatarPickerWrapper: { position: 'relative', marginBottom: 6 },
+    avatarLarge: { width: 96, height: 96, borderRadius: 48 },
+    avatarLargeFallback: {
+        width: 96, height: 96, borderRadius: 48,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    avatarLargeInitial: { color: '#fff', fontSize: 38, fontWeight: 'bold' },
+    avatarPickerBadge: {
+        position: 'absolute', bottom: 2, right: 2,
+        width: 28, height: 28, borderRadius: 14,
+        justifyContent: 'center', alignItems: 'center',
+        borderWidth: 2, borderColor: '#fff',
+    },
+    avatarPickerHint: { fontSize: 13, marginBottom: 28 },
+
+    // Fields
+    fieldLabel: {
+        alignSelf: 'flex-start', fontSize: 13, fontWeight: '600',
+        marginBottom: 6, marginLeft: 4,
+    },
+    fieldInput: {
+        width: '100%', borderRadius: 12, paddingHorizontal: 15,
+        paddingVertical: 13, fontSize: 16, borderWidth: 1, marginBottom: 20,
+    },
+    usernameRow: {
+        width: '100%', flexDirection: 'row', alignItems: 'center',
+        borderRadius: 12, paddingHorizontal: 15, borderWidth: 1, marginBottom: 20,
+    },
+    atSign: { fontSize: 18, marginRight: 4 },
+    usernameInput: { flex: 1, paddingVertical: 13, fontSize: 16 },
 });

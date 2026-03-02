@@ -17,7 +17,6 @@ interface AuthContextType {
   user: UserInter;
   setUser: (user: UserInter) => Promise<void>;
   logout: () => Promise<void>;
-  /** true while restoring the session from storage on first mount */
   isLoading: boolean;
 }
 
@@ -37,7 +36,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  /** Call after a successful login – persists the user to storage. */
   const setUser = async (newUser: UserInter) => {
     setUserState(newUser);
     if (newUser.id !== -1) {
@@ -47,7 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  /** Clears stored user and resets state → routing will redirect to Welcome. */
   const logout = async () => {
     await StorageService.clearUser();
     setUserState(EMPTY_USER);

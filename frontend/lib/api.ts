@@ -25,4 +25,11 @@ export const chatAPI = {
     getOrCreateConvo: (user1: number, user2: number) => api.post('/chat/get-or-create', { user1, user2 }),
 };
 
+export const userAPI = {
+    updateProfile: (userId: number, data: { name?: string; username?: string; profile_picture?: string }) =>
+        api.patch(`/users/${userId}`, data),
+    searchUsers: (query: string) =>
+        api.get(`/users/search`, { params: { q: query } }),
+};
+
 export default api;

@@ -123,9 +123,14 @@ export default function Home() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
         <Text style={[styles.headerTitle, { color: colors.headerText }]}>ABA</Text>
-        <TouchableOpacity onPress={() => router.push('/(root)/Settings')}>
-          <Ionicons name="settings-outline" size={24} color={colors.headerText} />
-        </TouchableOpacity>
+        <View style={styles.headerIcons}>
+          <TouchableOpacity onPress={() => router.push('/(root)/Search')} style={styles.headerIcon}>
+            <Ionicons name="search-outline" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(root)/Settings')}>
+            <Ionicons name="settings-outline" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -164,6 +169,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 15,
   },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+  },
+  headerIcon: {},
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
