@@ -20,16 +20,22 @@ CREATE TABLE IF NOT EXISTS Users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_phone ON Users(phone);
+CREATE INDEX IF NOT EXISTS idx_users_username ON Users(username);
 
 CREATE TABLE IF NOT EXISTS Contacts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     contact_user_id INTEGER NOT NULL,
+    saved_name TEXT,                          -- per-user label, overrides Users.name in lists
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, contact_user_id),
     FOREIGN KEY(user_id) REFERENCES Users(id),
     FOREIGN KEY(contact_user_id) REFERENCES Users(id)
 );
+
+-- Covering index for the JOIN in the conversation list query
+CREATE INDEX IF NOT EXISTS idx_contacts_lookup ON Contacts(user_id, contact_user_id);
+CREATE INDEX IF NOT EXISTS idx_contacts_contact ON Contacts(contact_user_id);
 
 CREATE TABLE IF NOT EXISTS Conversations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,5 +70,13 @@ CREATE TABLE IF NOT EXISTS Messages (
 `;
 
 db.exec(schema);
+
+// ── Safe migration: add saved_name to Contacts if upgrading an existing DB ──
+try {
+    db.exec('ALTER TABLE Contacts ADD COLUMN saved_name TEXT');
+    console.log('[db] Migration: added saved_name to Contacts');
+} catch {
+    // Column already exists — no action needed
+}
 
 module.exports = db;

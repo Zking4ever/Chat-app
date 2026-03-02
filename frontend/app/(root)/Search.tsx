@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
         borderRadius: 25, paddingHorizontal: 12, height: 44,
     },
     searchIcon: { marginRight: 8 },
-    searchInput: { flex: 1, fontSize: 16 },
+    searchInput: { flex: 1, fontSize: 16, outlineWidth: 0,outlineStyle:'dotted' },
     listContent: { padding: 12 },
 
     // Section header for "Recent"

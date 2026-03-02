@@ -31,7 +31,6 @@ export default function Home() {
     try {
       const response = await chatAPI.getConversations(id);
       setConversations(response.data);
-      console.log(response.data);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     }
