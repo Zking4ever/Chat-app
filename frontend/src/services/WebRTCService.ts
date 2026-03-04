@@ -8,6 +8,10 @@ export class WebRTCService {
     private onIceCandidateCallback: ((candidate: any) => void) | null = null;
     private onConnectionStateCallback: ((state: RTCPeerConnectionState) => void) | null = null;
 
+    // Buffer ICE candidates that arrive before remote description is set
+    private pendingCandidates: RTCIceCandidateInit[] = [];
+    private isRemoteDescriptionSet = false;
+
     private config: RTCConfiguration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -98,6 +102,8 @@ export class WebRTCService {
         if (!this.peerConnection) return null;
         try {
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            this.isRemoteDescriptionSet = true;
+            await this.flushPendingCandidates();
             const answer = await this.peerConnection.createAnswer();
             await this.peerConnection.setLocalDescription(answer);
             return answer;
@@ -111,6 +117,8 @@ export class WebRTCService {
         if (!this.peerConnection) return;
         try {
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            this.isRemoteDescriptionSet = true;
+            await this.flushPendingCandidates();
         } catch (error) {
             console.error('Error handling answer:', error);
         }
@@ -119,9 +127,29 @@ export class WebRTCService {
     async addIceCandidate(candidate: RTCIceCandidateInit) {
         if (!this.peerConnection) return;
         try {
+            if (!this.isRemoteDescriptionSet) {
+                // Buffer the candidate until remote description is applied
+                console.log('Buffering ICE candidate (remote description not set yet)');
+                this.pendingCandidates.push(candidate);
+                return;
+            }
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (e) {
             console.error('Error adding ice candidate', e);
+        }
+    }
+
+    private async flushPendingCandidates() {
+        if (this.pendingCandidates.length === 0) return;
+        console.log(`Flushing ${this.pendingCandidates.length} buffered ICE candidates`);
+        const candidates = [...this.pendingCandidates];
+        this.pendingCandidates = [];
+        for (const candidate of candidates) {
+            try {
+                await this.peerConnection?.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (e) {
+                console.error('Error flushing buffered ice candidate', e);
+            }
         }
     }
 
@@ -166,5 +194,7 @@ export class WebRTCService {
         this.peerConnection = null;
         this.localStream = null;
         this.remoteStream = null;
+        this.pendingCandidates = [];
+        this.isRemoteDescriptionSet = false;
     }
 }

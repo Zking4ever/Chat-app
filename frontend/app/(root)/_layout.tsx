@@ -9,6 +9,7 @@ export default function RootLayout() {
       <Stack.Screen name="Settings" />
       <Stack.Screen name="Search" />
       <Stack.Screen name="About" />
+      <Stack.Screen name="Call" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
     </Stack>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
@@ -30,18 +30,21 @@ export default function CallScreen() {
     useEffect(() => {
         socket.current = SocketService.getSocket(user.id);
 
+        // Create the service instance
         if (!webRTCService.current) {
             webRTCService.current = new WebRTCService();
         }
 
+        // Register ALL callbacks FIRST — before any async work — so no events are missed
         webRTCService.current.onRemoteStream((stream) => {
             console.log('Remote stream received in CallScreen');
             setRemoteStream(stream);
         });
 
         webRTCService.current.onIceCandidate((candidate) => {
+            // Always use participantId for socket routing (it's the other user's ID)
             socket.current.emit('ice_candidate', {
-                to: incoming === 'true' ? participantId : (participantId || convoId),
+                to: participantId,
                 candidate: candidate
             });
         });
@@ -59,13 +62,14 @@ export default function CallScreen() {
 
         const startCallAction = async () => {
             try {
-                const stream = await webRTCService.current?.getLocalStream(callType === 'video');
-                if (stream) setLocalStream(stream);
-
                 if (incoming !== 'true') {
+                    // Outgoing call: get stream, then create offer
+                    const stream = await webRTCService.current?.getLocalStream(callType === 'video');
+                    if (stream) setLocalStream(stream);
+
                     const offer = await webRTCService.current?.createOffer();
                     socket.current.emit('call_user', {
-                        userToCall: participantId || convoId,
+                        userToCall: participantId,
                         from: user.id,
                         name: user.name || 'User ' + user.id,
                         callType: callType || 'audio',
@@ -73,8 +77,10 @@ export default function CallScreen() {
                     });
                     console.log(`Starting ${callType} call...`);
                 } else if (autoAnswer === 'true') {
+                    // Incoming call with auto-answer (from banner "Accept" tap)
                     setTimeout(() => acceptCall(), 500);
                 }
+                // If incoming but NOT autoAnswer, the user sees the in-screen accept UI
             } catch (err) {
                 console.error('Failed to start call:', err);
                 setCallStatus('Permission Denied');
@@ -149,9 +155,15 @@ export default function CallScreen() {
     };
 
     const saveCallLog = (status: string) => {
+        // Only log if we have a valid numeric convoId
+        const convoIdNum = Number(convoId);
+        if (!convoId || isNaN(convoIdNum) || convoIdNum <= 0) {
+            console.warn('saveCallLog: no valid convoId available, skipping log');
+            return;
+        }
         const finalDuration = formatDuration(duration);
         socket.current.emit('save_call_log', {
-            conversation_id: Number(convoId),
+            conversation_id: convoIdNum,
             sender_id: user.id,
             text: status === 'Missed' ? `Missed ${callType} call` : `${callType === 'video' ? 'Video' : 'Audio'} call`,
             callType,
@@ -161,7 +173,8 @@ export default function CallScreen() {
     };
 
     const endCall = () => {
-        socket.current.emit('end_call', { to: participantId || convoId });
+        // Always route to participantId (the other user), never convoId
+        socket.current.emit('end_call', { to: participantId });
         saveCallLog('Finished');
         webRTCService.current?.close();
         router.back();
@@ -170,9 +183,17 @@ export default function CallScreen() {
     const acceptCall = async () => {
         setCallStatus('Connecting...');
 
+        // Only get local stream if we don't already have one (prevents double-add)
         if (!localStream && webRTCService.current) {
-            const stream = await webRTCService.current.getLocalStream(callType === 'video');
-            if (stream) setLocalStream(stream);
+            try {
+                const stream = await webRTCService.current.getLocalStream(callType === 'video');
+                if (stream) setLocalStream(stream);
+            } catch (err) {
+                console.error('Failed to get local stream on accept:', err);
+                setCallStatus('Permission Denied');
+                setTimeout(() => router.back(), 2000);
+                return;
+            }
         }
 
         if (webRTCService.current && signal) {

@@ -65,13 +65,13 @@ function RootNavigation() {
 
   const handleAnswer = (autoAnswer: boolean = true) => {
     if (!incomingCall) return;
-    const { from, name, callType, signal, participantId } = incomingCall;
+    const { from, name, callType, signal } = incomingCall;
     setIncomingCall(null);
     router.push({
       pathname: '/(root)/Call',
       params: {
-        convoId: from,
-        participantId: participantId,
+        convoId: '',           // We don't know the convo ID from the notification; Call.tsx will guard this
+        participantId: from,   // This is the caller's user_id — used for all socket routing
         callType: callType,
         incoming: 'true',
         autoAnswer: autoAnswer ? 'true' : 'false',
