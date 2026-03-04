@@ -8,9 +8,21 @@ import SocketService from '@/src/services/SocketService';
 
 import { VideoView } from '@/src/components/VideoView';
 
+// Helper: attach a MediaStream to a hidden <audio> element for audio-only calls on web.
+// React Native audio is handled automatically by react-native-webrtc's native layer.
+function attachAudioToElement(element: HTMLAudioElement | null, stream: any) {
+    if (!element || !stream) return;
+    if (element.srcObject !== stream) {
+        element.srcObject = stream;
+        element.play().catch((e: any) => console.warn('Audio play failed:', e));
+    }
+}
+
 export default function CallScreen() {
     const { user } = useAuth();
-    const { convoId, participantId, callType, incoming, fromName, signal, autoAnswer } = useLocalSearchParams();
+    const { convoId, participantId, callType, incoming, fromName, signal: rawSignal, autoAnswer } = useLocalSearchParams();
+    // Expo Router can return params as string[] on web — always coerce to string
+    const signal = Array.isArray(rawSignal) ? rawSignal[0] : rawSignal;
     const router = useRouter();
 
     const [callStatus, setCallStatus] = useState(incoming === 'true' ? 'Incoming Call...' : 'Calling...');
@@ -26,6 +38,8 @@ export default function CallScreen() {
     const webRTCService = useRef<WebRTCService | null>(null);
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const remoteVideoRef = useRef<HTMLVideoElement>(null);
+    // Hidden audio element used only on web for audio-only calls
+    const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         socket.current = SocketService.getSocket(user.id);
@@ -123,13 +137,34 @@ export default function CallScreen() {
         };
     }, []);
 
+    // Create a hidden <audio> element for web audio-only calls once on mount
+    useEffect(() => {
+        if (Platform.OS === 'web' && callType !== 'video') {
+            const audioEl = document.createElement('audio');
+            audioEl.autoplay = true;
+            audioEl.style.display = 'none';
+            document.body.appendChild(audioEl);
+            remoteAudioRef.current = audioEl;
+            return () => {
+                audioEl.srcObject = null;
+                document.body.removeChild(audioEl);
+            };
+        }
+    }, []);
+
     useEffect(() => {
         if (Platform.OS === 'web') {
-            if (localVideoRef.current && localStream) {
-                localVideoRef.current.srcObject = localStream;
-            }
-            if (remoteVideoRef.current && remoteStream) {
-                remoteVideoRef.current.srcObject = remoteStream;
+            if (callType === 'video') {
+                // Video call: attach streams to <video> elements
+                if (localVideoRef.current && localStream) {
+                    localVideoRef.current.srcObject = localStream;
+                }
+                if (remoteVideoRef.current && remoteStream) {
+                    remoteVideoRef.current.srcObject = remoteStream;
+                }
+            } else {
+                // Audio call: play remote stream through the hidden <audio> element
+                attachAudioToElement(remoteAudioRef.current, remoteStream);
             }
         }
     }, [localStream, remoteStream]);

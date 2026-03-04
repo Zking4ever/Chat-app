@@ -54,15 +54,37 @@ export class WebRTCService {
             }
         };
 
+        // Primary connection state listener
         this.peerConnection.onconnectionstatechange = () => {
             if (this.peerConnection) {
-                console.log('Connection state changed:', this.peerConnection.connectionState);
+                const state = this.peerConnection.connectionState;
+                console.log('Connection state changed:', state);
                 if (this.onConnectionStateCallback) {
-                    this.onConnectionStateCallback(this.peerConnection.connectionState);
+                    this.onConnectionStateCallback(state);
                 }
             }
         };
+
+        // Fallback: iceConnectionState is more reliable on older react-native-webrtc versions
+        this.peerConnection.oniceconnectionstatechange = () => {
+            if (!this.peerConnection) return;
+            const iceState = this.peerConnection.iceConnectionState;
+            console.log('ICE connection state changed:', iceState);
+            if (!this.onConnectionStateCallback) return;
+
+            // Map ICE states to the same connection states the UI expects
+            if (iceState === 'connected' || iceState === 'completed') {
+                this.onConnectionStateCallback('connected');
+            } else if (iceState === 'failed') {
+                this.onConnectionStateCallback('failed');
+            } else if (iceState === 'disconnected') {
+                this.onConnectionStateCallback('disconnected');
+            } else if (iceState === 'closed') {
+                this.onConnectionStateCallback('closed');
+            }
+        };
     }
+
 
     async getLocalStream(video: boolean = true) {
         try {

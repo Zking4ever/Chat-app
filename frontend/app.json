@@ -29,6 +29,11 @@
         "RECORD_AUDIO",
         "MODIFY_AUDIO_SETTINGS",
         "READ_CONTACTS",
+        "WRITE_CONTACTS",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "READ_CONTACTS",
         "WRITE_CONTACTS"
       ]
     },
@@ -70,6 +75,9 @@
       "eas": {
         "projectId": "77d9f914-7250-4714-9b30-02afa7066a6d"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
