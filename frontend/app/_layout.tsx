@@ -92,7 +92,7 @@ function RootNavigation() {
     if (!isMounted || isLoading) return;
 
     const inAuthScreens =
-      // segments[0] === '' ||
+      segments[0] === undefined ||
       segments[0] === 'Login' ||
       segments[0] === 'Register';
 

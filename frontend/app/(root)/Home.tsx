@@ -17,6 +17,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { getImageUrl } from '@/lib/imageUrl';
+import { Colors } from '@/constants/Colors';
 
 export default function Home() {
   const { user } = useAuth();
@@ -109,7 +110,7 @@ export default function Home() {
           />
         ) : (
           <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
-            <Text style={styles.avatarInitial}>
+            <Text style={[styles.avatarInitial, { color: colors.background }]}>
               {(item.participant_name || '?')[0]?.toUpperCase()}
             </Text>
           </View>
@@ -219,7 +220,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarInitial: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
   },

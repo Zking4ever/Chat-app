@@ -23,11 +23,7 @@ export const chatAPI = {
     getMessages: (convoId: number) => api.get(`/chat/messages/${convoId}`),
     sendMessage: (data: { conversation_id: number, sender_id: number, text: string, message_type?: string, metadata?: string }) => api.post('/chat/message', data),
     getOrCreateConvo: (user1: number, user2: number) => api.post('/chat/get-or-create', { user1, user2 }),
-    uploadFile: (formData: FormData) => api.post('/chat/upload', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    }),
+    uploadFile: (data: { fileData: string, fileName: string }) => api.post('/chat/upload', data),
 };
 
 export const userAPI = {

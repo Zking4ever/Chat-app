@@ -11,6 +11,7 @@ import { chatAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { Audio } from 'expo-av';
 import { getImageUrl } from '@/lib/imageUrl';
 
@@ -129,14 +130,15 @@ export default function ChatScreen() {
         try {
             if (selectedFile) {
                 setUploading(true);
-                const formData = new FormData();
-                formData.append('file', {
-                    uri: Platform.OS === 'ios' ? selectedFile.uri.replace('file://', '') : selectedFile.uri,
-                    name: selectedFile.name,
-                    type: selectedFile.mimeType,
-                } as any);
 
-                const uploadRes = await chatAPI.uploadFile(formData);
+                // Read base64
+                const base64Data = await FileSystem.readAsStringAsync(selectedFile.uri, { encoding: FileSystem.EncodingType.Base64 });
+                const dataUrl = `data:${selectedFile.mimeType};base64,${base64Data}`;
+
+                const uploadRes = await chatAPI.uploadFile({
+                    fileData: dataUrl,
+                    fileName: selectedFile.name
+                });
                 const { url, filename } = uploadRes.data;
 
                 const msgData = {
@@ -252,14 +254,13 @@ export default function ChatScreen() {
 
         setUploading(true);
         try {
-            const formData = new FormData();
-            formData.append('file', {
-                uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-                name: `audio_${Date.now()}.m4a`,
-                type: 'audio/m4a',
-            } as any);
+            const base64Data = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            const dataUrl = `data:audio/m4a;base64,${base64Data}`;
 
-            const uploadRes = await chatAPI.uploadFile(formData);
+            const uploadRes = await chatAPI.uploadFile({
+                fileData: dataUrl,
+                fileName: `audio_${Date.now()}.m4a`
+            });
             const { url, filename } = uploadRes.data;
 
             const msgData = {
