@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     StyleSheet, Text, View, TouchableOpacity, ScrollView,
-    SafeAreaView, Switch, Platform, TextInput, Image,
+    Switch, Platform, TextInput, Image,
     ActivityIndicator, Alert, Modal
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
@@ -191,7 +192,7 @@ export default function Settings() {
                                 <Image source={{ uri: getImageUrl(user.profile_picture) }} style={styles.avatar} />
                             ) : (
                                 <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
-                                    <Text style={styles.avatarInitial}>
+                                    <Text style={[styles.avatarInitial, { color: 'red' }]}>
                                         {(user.name || user.username || '?')[0].toUpperCase()}
                                     </Text>
                                 </View>
@@ -396,7 +397,7 @@ const styles = StyleSheet.create({
         width: 56, height: 56, borderRadius: 28,
         justifyContent: 'center', alignItems: 'center',
     },
-    avatarInitial: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
+    avatarInitial: { fontSize: 22, fontWeight: 'bold' },
     editBadge: {
         position: 'absolute', bottom: 0, right: 0,
         width: 18, height: 18, borderRadius: 9,

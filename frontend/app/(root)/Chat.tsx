@@ -2,13 +2,17 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import {
-    FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View
+    FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View, Image, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SocketService from '@/src/services/SocketService';
 import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
+import { getImageUrl } from '@/lib/imageUrl';
 
 import { useTheme } from '@/context/ThemeContext';
 
@@ -25,6 +29,21 @@ export default function ChatScreen() {
     const [isTyping, setIsTyping] = useState(false);
     const [typingUser, setTypingUser] = useState('');
     const typingTimeoutRef = useRef<any>(null);
+
+    const [uploading, setUploading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<{
+        uri: string;
+        name: string;
+        type: 'image' | 'document';
+        mimeType: string;
+    } | null>(null);
+
+    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingDuration, setRecordingDuration] = useState(0);
+    const recordingTimerRef = useRef<any>(null);
+    const [sound, setSound] = useState<Audio.Sound | null>(null);
+    const [playingMessageId, setPlayingMessageId] = useState<number | null>(null);
 
     const heartOpacity = useSharedValue(0);
     const heartScale = useSharedValue(0);
@@ -74,8 +93,11 @@ export default function ChatScreen() {
         return () => {
             socket.current.off('message', handleMessage);
             socket.current.off('typing_status', handleTypingStatus);
+            if (sound) {
+                sound.unloadAsync();
+            }
         };
-    }, [convoId]);
+    }, [convoId, sound]);
 
     const handleTextInput = (text: string) => {
         setInputText(text);
@@ -100,29 +122,198 @@ export default function ChatScreen() {
     };
 
     const handleSend = async () => {
-        if (!inputText.trim()) return;
+        if (!inputText.trim() && !selectedFile) return;
 
         triggerHeart();
 
-        const msgData = {
-            conversation_id: Number(convoId),
-            sender_id: user.id,
-            text: inputText,
-        };
-
         try {
-            const response = await chatAPI.sendMessage(msgData);
-            const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent', message_type: 'text' };
-            setInputText('');
+            if (selectedFile) {
+                setUploading(true);
+                const formData = new FormData();
+                formData.append('file', {
+                    uri: Platform.OS === 'ios' ? selectedFile.uri.replace('file://', '') : selectedFile.uri,
+                    name: selectedFile.name,
+                    type: selectedFile.mimeType,
+                } as any);
 
-            // Stop typing immediately on send
-            socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
+                const uploadRes = await chatAPI.uploadFile(formData);
+                const { url, filename } = uploadRes.data;
 
-            // Notify via socket
-            socket.current.emit('send_message', newMsg);
+                const msgData = {
+                    conversation_id: Number(convoId),
+                    sender_id: user.id,
+                    text: url,
+                    message_type: selectedFile.type,
+                    metadata: JSON.stringify({ filename, originalName: selectedFile.name, caption: inputText.trim() || undefined })
+                };
+
+                const response = await chatAPI.sendMessage(msgData);
+                const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent' };
+
+                setInputText('');
+                setSelectedFile(null);
+
+                socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
+                socket.current.emit('send_message', newMsg);
+            } else {
+                const msgData = {
+                    conversation_id: Number(convoId),
+                    sender_id: user.id,
+                    text: inputText.trim(),
+                    message_type: 'text'
+                };
+
+                const response = await chatAPI.sendMessage(msgData);
+                const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent', message_type: 'text' };
+                setInputText('');
+
+                // Stop typing immediately on send
+                socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
+
+                // Notify via socket
+                socket.current.emit('send_message', newMsg);
+            }
         } catch (error) {
             console.error('Send failed', error);
+        } finally {
+            setUploading(false);
         }
+    };
+
+    const handleFileUpload = async (type: 'image' | 'document') => {
+        try {
+            let result;
+            if (type === 'image') {
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (status !== 'granted') return;
+                result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    quality: 0.7,
+                });
+            } else {
+                result = await DocumentPicker.getDocumentAsync({
+                    type: '*/*',
+                    copyToCacheDirectory: true,
+                });
+            }
+
+            if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+            const asset = result.assets[0] as any;
+            setSelectedFile({
+                uri: asset.uri,
+                name: asset.fileName || asset.name || (type === 'image' ? 'image.jpg' : 'file.bin'),
+                type,
+                mimeType: asset.mimeType || (type === 'image' ? 'image/jpeg' : 'application/octet-stream')
+            });
+        } catch (error) {
+            console.error('Pick failed', error);
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const { status } = await Audio.requestPermissionsAsync();
+            if (status !== 'granted') return;
+
+            await Audio.setAudioModeAsync({
+                allowsRecordingIOS: true,
+                playsInSilentModeIOS: true,
+            });
+
+            const { recording } = await Audio.Recording.createAsync(
+                Audio.RecordingOptionsPresets.HIGH_QUALITY
+            );
+
+            setRecording(recording);
+            setIsRecording(true);
+            setRecordingDuration(0);
+
+            recordingTimerRef.current = setInterval(() => {
+                setRecordingDuration((prev) => prev + 1);
+            }, 1000);
+        } catch (err) {
+            console.error('Failed to start recording', err);
+        }
+    };
+
+    const stopRecording = async (cancel: boolean = false) => {
+        if (!recording) return;
+
+        setIsRecording(false);
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        setRecording(null);
+        setRecordingDuration(0);
+
+        if (cancel || !uri) return;
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', {
+                uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+                name: `audio_${Date.now()}.m4a`,
+                type: 'audio/m4a',
+            } as any);
+
+            const uploadRes = await chatAPI.uploadFile(formData);
+            const { url, filename } = uploadRes.data;
+
+            const msgData = {
+                conversation_id: Number(convoId),
+                sender_id: user.id,
+                text: url,
+                message_type: 'audio',
+                metadata: JSON.stringify({ filename, duration: recordingDuration })
+            };
+
+            const response = await chatAPI.sendMessage(msgData);
+            const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent' };
+
+            socket.current.emit('send_message', newMsg);
+        } catch (error) {
+            console.error('Voice message failed', error);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const playAudio = async (messageId: number, uri: string) => {
+        try {
+            if (sound) {
+                await sound.unloadAsync();
+                if (playingMessageId === messageId) {
+                    setPlayingMessageId(null);
+                    setSound(null);
+                    return;
+                }
+            }
+
+            const fullUri = getImageUrl(uri) || '';
+            const { sound: newSound } = await Audio.Sound.createAsync({ uri: fullUri });
+            setSound(newSound);
+            setPlayingMessageId(messageId);
+
+            newSound.setOnPlaybackStatusUpdate((status: any) => {
+                if (status.didJustFinish) {
+                    setPlayingMessageId(null);
+                    setSound(null);
+                }
+            });
+
+            await newSound.playAsync();
+        } catch (error) {
+            console.error('Error playing audio', error);
+        }
+    };
+
+    const formatDuration = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
     const startCall = (type: 'audio' | 'video') => {
@@ -169,7 +360,43 @@ export default function ChatScreen() {
                 styles.messageBox,
                 isMe ? [styles.myMessage, { backgroundColor: colors.bubbleSent }] : [styles.theirMessage, { backgroundColor: colors.bubbleReceived }]
             ]}>
-                <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text }]}>{item.text}</Text>
+                {item.message_type === 'image' ? (
+                    <>
+                        <Image source={{ uri: getImageUrl(item.text) }} style={styles.messageImage} />
+                        {item.metadata && JSON.parse(item.metadata).caption && (
+                            <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text, marginTop: 5 }]}>
+                                {JSON.parse(item.metadata).caption}
+                            </Text>
+                        )}
+                    </>
+                ) : item.message_type === 'document' ? (
+                    <>
+                        <View style={styles.documentContainer}>
+                            <Ionicons name="document-text" size={24} color={isMe ? '#fff' : colors.tint} />
+                            <Text style={[styles.documentName, { color: isMe ? '#fff' : colors.text }]} numberOfLines={1}>
+                                {item.metadata ? JSON.parse(item.metadata).originalName : 'Document'}
+                            </Text>
+                        </View>
+                        {item.metadata && JSON.parse(item.metadata).caption && (
+                            <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text, marginTop: 5 }]}>
+                                {JSON.parse(item.metadata).caption}
+                            </Text>
+                        )}
+                    </>
+                ) : item.message_type === 'audio' ? (
+                    <View style={styles.audioContainer}>
+                        <TouchableOpacity onPress={() => playAudio(item.id, item.text)} style={styles.playPauseBtn}>
+                            <Ionicons name={playingMessageId === item.id ? "pause" : "play"} size={20} color={isMe ? '#fff' : colors.tint} />
+                        </TouchableOpacity>
+                        <Text style={[styles.audioDuration, { color: isMe ? '#fff' : colors.text }]}>
+                            {item.metadata && JSON.parse(item.metadata).duration
+                                ? formatDuration(JSON.parse(item.metadata).duration)
+                                : 'Voice Note'}
+                        </Text>
+                    </View>
+                ) : (
+                    <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text }]}>{item.text}</Text>
+                )}
                 <Text style={[styles.messageTime, { color: isMe ? 'rgba(255,255,255,0.7)' : colors.textSecondary }]}>
                     {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
@@ -214,18 +441,71 @@ export default function ChatScreen() {
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
             >
-                <View style={[styles.inputArea, { backgroundColor: colors.surface, borderTopColor: colors.background }]}>
-                    <TextInput
-                        style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.surface }]}
-                        placeholder="Type a message..."
-                        placeholderTextColor={colors.textSecondary}
-                        value={inputText}
-                        onChangeText={handleTextInput}
-                        multiline
-                    />
-                    <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.buttonBackground }]} onPress={handleSend}>
-                        <Ionicons name="send" size={20} color={colors.buttonText} />
-                    </TouchableOpacity>
+                {selectedFile && (
+                    <View style={[styles.previewContainer, { backgroundColor: colors.surface, borderTopColor: colors.background }]}>
+                        <TouchableOpacity style={styles.previewClose} onPress={() => setSelectedFile(null)}>
+                            <Ionicons name="close-circle" size={28} color={colors.textSecondary} />
+                        </TouchableOpacity>
+                        {selectedFile.type === 'image' ? (
+                            <Image source={{ uri: selectedFile.uri }} style={styles.previewImageThumb} />
+                        ) : (
+                            <View style={[styles.previewDocument, { backgroundColor: colors.background }]}>
+                                <Ionicons name="document-text" size={32} color={colors.tint} />
+                                <Text style={[styles.previewDocumentText, { color: colors.text }]} numberOfLines={1}>{selectedFile.name}</Text>
+                            </View>
+                        )}
+                    </View>
+                )}
+
+                <View style={[styles.inputArea, { backgroundColor: colors.surface, borderTopColor: selectedFile ? 'transparent' : colors.background }]}>
+                    {isRecording ? (
+                        <View style={styles.recordingContainer}>
+                            <ActivityIndicator size="small" color="#ef4444" style={{ marginRight: 10 }} />
+                            <Text style={{ color: '#ef4444', flex: 1, fontWeight: 'bold' }}>
+                                Recording... {formatDuration(recordingDuration)}
+                            </Text>
+                            <TouchableOpacity onPress={() => stopRecording(true)} style={{ padding: 10 }}>
+                                <Text style={{ color: colors.textSecondary }}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => stopRecording(false)} style={styles.sendRecordingBtn}>
+                                <Ionicons name="send" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <>
+                            <TouchableOpacity style={styles.attachBtn} onPress={() => handleFileUpload('document')}>
+                                <Ionicons name="attach" size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.attachBtn} onPress={() => handleFileUpload('image')}>
+                                <Ionicons name="image" size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                            <TextInput
+                                style={[styles.input, { backgroundColor: colors.background, color: colors.text, borderColor: colors.surface }]}
+                                placeholder="Type a message..."
+                                placeholderTextColor={colors.textSecondary}
+                                value={inputText}
+                                onChangeText={handleTextInput}
+                                multiline
+                            />
+                            {uploading ? (
+                                <View style={styles.sendBtn}>
+                                    <ActivityIndicator size="small" color={colors.tint} />
+                                </View>
+                            ) : inputText.trim() || selectedFile ? (
+                                <TouchableOpacity style={[styles.sendBtn, { backgroundColor: colors.buttonBackground }]} onPress={handleSend}>
+                                    <Ionicons name="send" size={20} color={colors.buttonText} />
+                                </TouchableOpacity>
+                            ) : (
+                                <TouchableOpacity
+                                    style={[styles.sendBtn, { backgroundColor: colors.surface }]}
+                                    onPressIn={startRecording}
+                                    onPressOut={() => stopRecording(false)}
+                                >
+                                    <Ionicons name="mic" size={20} color={colors.textSecondary} />
+                                </TouchableOpacity>
+                            )}
+                        </>
+                    )}
                 </View>
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -286,6 +566,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderTopWidth: 1,
     },
+    attachBtn: {
+        marginRight: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     input: {
         flex: 1,
         borderRadius: 25,
@@ -303,6 +588,83 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 10,
         elevation: 3,
+    },
+    messageImage: {
+        width: 200,
+        height: 200,
+        borderRadius: 10,
+        marginBottom: 5,
+    },
+    documentContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        padding: 10,
+        borderRadius: 10,
+        marginBottom: 5,
+        maxWidth: 200,
+    },
+    documentName: {
+        marginLeft: 10,
+        fontSize: 14,
+        flexShrink: 1,
+    },
+    audioContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+        minWidth: 120,
+    },
+    playPauseBtn: {
+        marginRight: 10,
+    },
+    audioDuration: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    recordingContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+    },
+    sendRecordingBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#ef4444',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 10,
+    },
+    previewContainer: {
+        padding: 10,
+        borderTopWidth: 1,
+        borderBottomWidth: 0,
+    },
+    previewClose: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        zIndex: 10,
+    },
+    previewImageThumb: {
+        width: 100,
+        height: 100,
+        borderRadius: 10,
+    },
+    previewDocument: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+        borderRadius: 10,
+        maxWidth: '80%',
+    },
+    previewDocumentText: {
+        marginLeft: 10,
+        fontSize: 14,
+        fontWeight: '500',
+        flexShrink: 1,
     },
     callLogContainer: {
         alignItems: 'center',

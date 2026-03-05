@@ -92,7 +92,7 @@ function RootNavigation() {
     if (!isMounted || isLoading) return;
 
     const inAuthScreens =
-      segments[0] === 'Welcome' ||
+      // segments[0] === '' ||
       segments[0] === 'Login' ||
       segments[0] === 'Register';
 
@@ -101,7 +101,7 @@ function RootNavigation() {
     }
 
     if (user.id === -1 && !inAuthScreens) {
-      router.replace('/Welcome');
+      router.replace('/');
     }
   }, [user.id, isMounted, isLoading, segments]);
 

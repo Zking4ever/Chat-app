@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     StyleSheet, Text, View, TextInput, FlatList,
-    TouchableOpacity, Image, ActivityIndicator, SafeAreaView,
+    TouchableOpacity, Image, ActivityIndicator,
     Animated
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
         borderRadius: 25, paddingHorizontal: 12, height: 44,
     },
     searchIcon: { marginRight: 8 },
-    searchInput: { flex: 1, fontSize: 16, outlineWidth: 0,outlineStyle:'dotted' },
+    searchInput: { flex: 1, fontSize: 16, outlineWidth: 0, outlineStyle: 'dotted' },
     listContent: { padding: 12 },
 
     // Section header for "Recent"
