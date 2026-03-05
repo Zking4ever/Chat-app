@@ -337,16 +337,28 @@ export default function ChatScreen() {
             const meta = item.metadata ? JSON.parse(item.metadata) : {};
             const iconName = meta.callType === 'video' ? 'videocam' : 'call';
 
+            const isMissed = item.text.startsWith('Missed');
+            let callTitle = isMe ? `Outgoing ${meta.callType || 'audio'} call` : `Incoming ${meta.callType || 'audio'} call`;
+
+            if (isMissed) {
+                callTitle = isMe ? `Canceled ${meta.callType || 'audio'} call` : `Missed ${meta.callType || 'audio'} call`;
+            }
+
+            // Capitalize first letter
+            callTitle = callTitle.charAt(0).toUpperCase() + callTitle.slice(1);
+
             return (
-                <View style={styles.callLogContainer}>
-                    <View style={[styles.callLogBox, { backgroundColor: colors.surface, borderColor: colors.tint }]}>
+                <View style={[styles.callLogContainer, isMe ? { alignItems: 'flex-end' } : { alignItems: 'flex-start' }]}>
+                    <View style={[styles.callLogBox, { backgroundColor: colors.surface, borderColor: isMissed ? '#ef4444' : colors.tint }]}>
                         <View style={styles.callLogIcon}>
-                            <Ionicons name={iconName as any} size={20} color={colors.tint} />
+                            <Ionicons name={iconName as any} size={20} color={isMissed ? '#ef4444' : colors.tint} />
                         </View>
                         <View>
-                            <Text style={[styles.callLogText, { color: colors.text }]}>{item.text}</Text>
+                            <Text style={[styles.callLogText, { color: isMissed ? '#ef4444' : colors.text }]}>
+                                {callTitle}
+                            </Text>
                             <Text style={[styles.callLogSubtext, { color: colors.textSecondary }]}>
-                                {meta.duration ? `${meta.duration} • ` : ''}
+                                {meta.duration && !isMissed ? `${meta.duration} • ` : ''}
                                 {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Text>
                         </View>
