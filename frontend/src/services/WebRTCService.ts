@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { webrtcAPI } from '../../lib/api';
 
 export class WebRTCService {
     private peerConnection: RTCPeerConnection | null = null;
@@ -8,32 +9,44 @@ export class WebRTCService {
     private onIceCandidateCallback: ((candidate: any) => void) | null = null;
     private onConnectionStateCallback: ((state: RTCPeerConnectionState) => void) | null = null;
 
-    // Buffer ICE candidates that arrive before remote description is set
     private pendingCandidates: RTCIceCandidateInit[] = [];
     private isRemoteDescriptionSet = false;
+    private initializationPromise: Promise<void> | null = null;
 
     private config: RTCConfiguration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' },
         ],
         iceCandidatePoolSize: 10,
     };
 
     constructor() {
-        this.initializePeerConnection();
+        this.initializationPromise = this.initialize();
     }
 
-    private initializePeerConnection() {
+    private async initialize() {
+        try {
+            const response = await webrtcAPI.getIceServers();
+            if (response.data && Array.isArray(response.data)) {
+                this.config.iceServers = response.data;
+                console.log('WebRTCService: Dynamic ICE servers loaded');
+            }
+        } catch (error) {
+            console.warn('WebRTCService: Failed to fetch dynamic ICE servers, using defaults:', error);
+        }
+
         if (typeof RTCPeerConnection !== 'undefined') {
             this.peerConnection = new RTCPeerConnection(this.config);
             this.setupListeners();
             console.log('RTCPeerConnection initialized');
         } else {
             console.warn('RTCPeerConnection is not available.');
+        }
+    }
+
+    private async ensureInitialized() {
+        if (this.initializationPromise) {
+            await this.initializationPromise;
         }
     }
 
@@ -77,6 +90,7 @@ export class WebRTCService {
     }
 
     async getLocalStream(video: boolean = true) {
+        await this.ensureInitialized();
         try {
             console.log(`Getting local stream (video: ${video})...`);
             // Standard getUserMedia works for both web and react-native-webrtc
@@ -108,6 +122,7 @@ export class WebRTCService {
     }
 
     async createOffer() {
+        await this.ensureInitialized();
         if (!this.peerConnection) return null;
         try {
             const offer = await this.peerConnection.createOffer();
@@ -120,6 +135,7 @@ export class WebRTCService {
     }
 
     async handleOffer(offer: RTCSessionDescriptionInit) {
+        await this.ensureInitialized();
         if (!this.peerConnection) return null;
         try {
             console.log('Handling offer...');
@@ -137,6 +153,7 @@ export class WebRTCService {
     }
 
     async handleAnswer(answer: RTCSessionDescriptionInit) {
+        await this.ensureInitialized();
         if (!this.peerConnection) return;
         try {
             console.log('Handling answer...');
@@ -149,6 +166,7 @@ export class WebRTCService {
     }
 
     async addIceCandidate(candidate: RTCIceCandidateInit) {
+        await this.ensureInitialized();
         if (!this.peerConnection) return;
         try {
             if (!this.isRemoteDescriptionSet || !this.peerConnection.remoteDescription) {

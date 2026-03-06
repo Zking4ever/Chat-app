@@ -5,6 +5,8 @@ import {
     mediaDevices
 } from 'react-native-webrtc';
 
+import { webrtcAPI } from '../../lib/api';
+
 export class WebRTCService {
     private peerConnection: any = null;
     private localStream: any = null;
@@ -13,26 +15,40 @@ export class WebRTCService {
     private onIceCandidateCallback: ((candidate: any) => void) | null = null;
     private onConnectionStateCallback: ((state: string) => void) | null = null;
 
-    // Buffer ICE candidates that arrive before remote description is set
     private pendingCandidates: any[] = [];
     private isRemoteDescriptionSet = false;
+    private initializationPromise: Promise<void> | null = null;
 
     private config: any = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
         ]
     };
 
     constructor() {
-        this.initializePeerConnection();
+        this.initializationPromise = this.initialize();
     }
 
-    private initializePeerConnection() {
+    private async initialize() {
+        try {
+            const response = await webrtcAPI.getIceServers();
+            if (response.data && Array.isArray(response.data)) {
+                this.config.iceServers = response.data;
+                console.log('Native WebRTCService: Dynamic ICE servers loaded');
+            }
+        } catch (error) {
+            console.warn('Native WebRTCService: Failed to fetch dynamic ICE servers, using defaults:', error);
+        }
+
         this.peerConnection = new RTCPeerConnection(this.config);
         this.setupListeners();
         console.log('Native RTCPeerConnection initialized');
+    }
+
+    private async ensureInitialized() {
+        if (this.initializationPromise) {
+            await this.initializationPromise;
+        }
     }
 
     private setupListeners() {
@@ -87,6 +103,7 @@ export class WebRTCService {
 
 
     async getLocalStream(video: boolean = true) {
+        await this.ensureInitialized();
         try {
             this.localStream = await mediaDevices.getUserMedia({
                 audio: true,
@@ -119,6 +136,7 @@ export class WebRTCService {
     }
 
     async createOffer() {
+        await this.ensureInitialized();
         if (!this.peerConnection) return null;
         try {
             const offer = await this.peerConnection.createOffer();
@@ -131,6 +149,7 @@ export class WebRTCService {
     }
 
     async handleOffer(offer: any) {
+        await this.ensureInitialized();
         if (!this.peerConnection) return null;
         try {
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -146,6 +165,7 @@ export class WebRTCService {
     }
 
     async handleAnswer(answer: any) {
+        await this.ensureInitialized();
         if (!this.peerConnection) return;
         try {
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
@@ -157,6 +177,7 @@ export class WebRTCService {
     }
 
     async addIceCandidate(candidate: any) {
+        await this.ensureInitialized();
         if (!this.peerConnection) return;
         try {
             if (!this.isRemoteDescriptionSet) {

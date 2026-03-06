@@ -36,4 +36,8 @@ export const userAPI = {
         api.get(`/users/check-username`, { params: { username, exclude_id: excludeId } }),
 };
 
+export const webrtcAPI = {
+    getIceServers: () => api.get('/webrtc/ice-servers'),
+};
+
 export default api;

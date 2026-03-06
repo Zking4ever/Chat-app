@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+import { chatAPI } from '@/lib/api';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -14,8 +16,10 @@ export default function ProfileScreen() {
     const { userId } = useLocalSearchParams();
     const router = useRouter();
     const { theme } = useTheme();
+    const { user: currentUser } = useAuth();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
 
     const isDark = theme === 'dark';
     const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
@@ -34,6 +38,48 @@ export default function ProfileScreen() {
 
         if (userId) fetchUser();
     }, [userId]);
+
+    const navigateToChat = async () => {
+        if (!user || !currentUser) return;
+        setActionLoading(true);
+        try {
+            const res = await chatAPI.getOrCreateConvo(currentUser.id, user.id);
+            router.push({
+                pathname: '/(root)/Chat',
+                params: {
+                    convoId: String(res.data.id),
+                    participantId: String(user.id),
+                    participantName: user.name
+                }
+            } as any);
+        } catch (error) {
+            console.error('Failed to get/create conversation:', error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const navigateToCall = async (type: 'audio' | 'video') => {
+        if (!user || !currentUser) return;
+        setActionLoading(true);
+        try {
+            const res = await chatAPI.getOrCreateConvo(currentUser.id, user.id);
+            router.push({
+                pathname: '/(root)/Call',
+                params: {
+                    convoId: String(res.data.id),
+                    participantId: String(user.id),
+                    callType: type,
+                    fromName: currentUser.name,
+                    incoming: 'false'
+                }
+            } as any);
+        } catch (error) {
+            console.error('Failed to resolve call conversation:', error);
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -122,17 +168,23 @@ export default function ProfileScreen() {
             {/* Action Section */}
             <View style={styles.actionSection}>
                 <TouchableOpacity
-                    style={[styles.primaryActionButton, { backgroundColor: '#25D366' }]}
-                    onPress={() => router.push({ pathname: '/(root)/Chat', params: { convoId: 'new', participantId: user.id, participantName: user.name } })}
+                    style={[styles.primaryActionButton, { backgroundColor: '#25D366' }, actionLoading && { opacity: 0.7 }]}
+                    onPress={navigateToChat}
+                    disabled={actionLoading}
                 >
-                    <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
-                    <Text style={styles.actionButtonText}>Send Message</Text>
+                    {actionLoading ? <ActivityIndicator color="#fff" /> : (
+                        <>
+                            <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+                            <Text style={styles.actionButtonText}>Send Message</Text>
+                        </>
+                    )}
                 </TouchableOpacity>
 
                 <View style={styles.callGrid}>
                     <TouchableOpacity
                         style={[styles.callButton, { backgroundColor: isDark ? '#2c2c2c' : '#fff' }]}
-                        onPress={() => router.push({ pathname: '/(root)/Call', params: { participantId: user.id, callType: 'audio', fromName: user.name } })}
+                        onPress={() => navigateToCall('audio')}
+                        disabled={actionLoading}
                     >
                         <Ionicons name="call" size={20} color="#25D366" />
                         <Text style={[styles.callButtonText, { color: isDark ? '#fff' : '#000' }]}>Audio Call</Text>
@@ -140,7 +192,8 @@ export default function ProfileScreen() {
 
                     <TouchableOpacity
                         style={[styles.callButton, { backgroundColor: isDark ? '#2c2c2c' : '#fff' }]}
-                        onPress={() => router.push({ pathname: '/(root)/Call', params: { participantId: user.id, callType: 'video', fromName: user.name } })}
+                        onPress={() => navigateToCall('video')}
+                        disabled={actionLoading}
                     >
                         <Ionicons name="videocam" size={20} color="#25D366" />
                         <Text style={[styles.callButtonText, { color: isDark ? '#fff' : '#000' }]}>Video Call</Text>

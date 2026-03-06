@@ -28,12 +28,14 @@ const contactRoutes = require('./routes/contacts');
 const chatRoutes = require('./routes/chat');
 const updateRoutes = require('./routes/updates');
 const userRoutes = require('./routes/users');
+const webrtcRoutes = require('./routes/webrtc');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/contacts', contactRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/updates', updateRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/webrtc', webrtcRoutes);
 
 // Static folder for updates (bundles and assets)
 app.use('/updates', express.static(path.join(__dirname, 'public/updates')));
