@@ -185,7 +185,11 @@ export default function ChatScreen() {
                 finalMsgData.metadata = JSON.stringify(updatedMeta);
             }
 
-            const response = await chatAPI.sendMessage(finalMsgData);
+            const { id, status, sent_at, ...apiMsgData } = finalMsgData;
+            const response = await chatAPI.sendMessage({
+                ...apiMsgData,
+                metadata: apiMsgData.metadata || undefined
+            });
 
             // Update local state with real ID and 'sent' status
             setMessages(prev => prev.map(m => m.id === tempId ? { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() } : m));
@@ -357,7 +361,7 @@ export default function ChatScreen() {
 
     const startCall = (type: 'audio' | 'video') => {
         router.push({
-            pathname: '/Call',
+            pathname: '/(root)/Call',
             params: {
                 convoId: String(convoId),
                 participantId: String(participantId),

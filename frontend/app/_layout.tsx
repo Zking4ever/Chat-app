@@ -37,6 +37,7 @@ function RootNavigation() {
     callType: 'audio' | 'video';
     participantId?: number;
     signal: any;
+    convoId?: string;
   } | null>(null);
 
   // Stabilize socket connection and incoming call listener
@@ -52,7 +53,8 @@ function RootNavigation() {
         name: data.name,
         callType: data.callType,
         signal: data.signal,
-        participantId: data.from // User ID of caller
+        participantId: data.from, // User ID of caller
+        convoId: data.convoId
       });
     };
 
@@ -70,13 +72,13 @@ function RootNavigation() {
     router.push({
       pathname: '/(root)/Call',
       params: {
-        convoId: '',           // We don't know the convo ID from the notification; Call.tsx will guard this
         participantId: from,   // This is the caller's user_id — used for all socket routing
         callType: callType,
         incoming: 'true',
         autoAnswer: autoAnswer ? 'true' : 'false',
         fromName: name,
-        signal: JSON.stringify(signal)
+        signal: JSON.stringify(signal),
+        convoId: incomingCall.convoId || ''
       }
     });
   };

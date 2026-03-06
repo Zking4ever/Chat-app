@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { Platform, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface VideoViewProps {
@@ -21,37 +21,36 @@ export const VideoView = ({
 }: VideoViewProps) => {
     return (
         <>
-            <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                style={{
-                    ...styles.remoteVideo,
-                    ...webStyles.video
-                }}
-            />
-            <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                    ...styles.localVideo,
-                    ...webStyles.video,
-                    opacity: isCameraOff ? 0 : 1
-                }}
-            />
-            {isCameraOff && (
-                <View style={[styles.localVideo, styles.cameraOffPlaceholder]}>
-                    <Ionicons name="videocam-off" size={24} color="#fff" />
-                </View>
+            {remoteStream && (
+                <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    style={{ ...styles.remoteVideo, ...webStyles.video }}
+                />
+            )}
+
+            {localStream && !isCameraOff ? (
+                <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{ ...styles.localVideo, ...webStyles.video }}
+                />
+            ) : (
+                isCameraOff && (
+                    <View style={[styles.localVideo, styles.cameraOffPlaceholder]}>
+                        <Ionicons name="videocam-off" size={24} color="#fff" />
+                    </View>
+                )
             )}
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    remoteVideo: { width: '100%', height: '100%' } as any,
+    remoteVideo: { width: '100%', height: '100%', backgroundColor: '#000' } as any,
     localVideo: {
         width: 120,
         height: 180,
@@ -64,5 +63,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
         zIndex: 10
     } as any,
-    cameraOffPlaceholder: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' },
+    cameraOffPlaceholder: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#333',
+        borderRadius: 12
+    },
 });

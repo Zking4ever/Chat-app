@@ -7,6 +7,8 @@ import { WebRTCService } from '@/src/services/WebRTCService';
 import SocketService from '@/src/services/SocketService';
 
 import { VideoView } from '@/src/components/VideoView';
+import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
 
 // Helper: attach a MediaStream to a hidden <audio> element for audio-only calls on web.
 // React Native audio is handled automatically by react-native-webrtc's native layer.
@@ -41,6 +43,29 @@ export default function CallScreen() {
     // Hidden audio element used only on web for audio-only calls
     const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
+    const requestPermissions = async () => {
+        if (Platform.OS === 'web') return true;
+        try {
+            const audioPerm = await Audio.requestPermissionsAsync();
+            if (!audioPerm.granted) {
+                console.warn('Audio permission denied');
+                return false;
+            }
+
+            if (callType === 'video') {
+                const cameraPerm = await ImagePicker.requestCameraPermissionsAsync();
+                if (!cameraPerm.granted) {
+                    console.warn('Camera permission denied');
+                    return false;
+                }
+            }
+            return true;
+        } catch (err) {
+            console.error('Permission request error:', err);
+            return false;
+        }
+    };
+
     useEffect(() => {
         socket.current = SocketService.getSocket(user.id);
 
@@ -64,11 +89,16 @@ export default function CallScreen() {
         });
 
         webRTCService.current.onConnectionState((state) => {
+            console.log('CallScreen: Connection state changed ->', state);
             setConnectionState(state);
             if (state === 'connected') {
                 setCallStatus('Connected');
                 startTimer();
-            } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+            } else if (state === 'failed') {
+                setCallStatus('Connection Failed');
+                // Don't immediately exit, allow user to see the error
+                setTimeout(() => router.back(), 3000);
+            } else if (state === 'disconnected' || state === 'closed') {
                 setCallStatus('Call Ended');
                 setTimeout(() => router.back(), 2000);
             }
@@ -77,25 +107,32 @@ export default function CallScreen() {
         const startCallAction = async () => {
             try {
                 if (incoming !== 'true') {
-                    // Outgoing call: request permissions explicitly before getting stream
                     setCallStatus('Requesting Permissions...');
+                    const hasPermission = await requestPermissions();
+                    if (!hasPermission) {
+                        setCallStatus('Permission Denied');
+                        setTimeout(() => router.back(), 2000);
+                        return;
+                    }
 
+                    // Outgoing call: get stream, then create offer
+                    setCallStatus('Calling...');
                     const stream = await webRTCService.current?.getLocalStream(callType === 'video');
                     if (stream) {
                         setLocalStream(stream);
                     } else {
                         throw new Error('Could not get local stream');
                     }
-
                     const offer = await webRTCService.current?.createOffer();
                     socket.current.emit('call_user', {
                         userToCall: participantId,
                         from: user.id,
                         name: user.name || 'User ' + user.id,
                         callType: callType || 'audio',
-                        signalData: offer
+                        signalData: offer,
+                        convoId: convoId // Send convoId so receiver can log it
                     });
-                    console.log(`Starting ${callType} call (Offer sent to ${participantId})`);
+                    console.log(`Starting ${callType} call (Offer sent to ${participantId}) for conversation ${convoId}`);
                 } else if (autoAnswer === 'true') {
                     // Incoming call with auto-answer (from banner "Accept" tap)
                     setTimeout(() => acceptCall(), 500);
@@ -103,7 +140,7 @@ export default function CallScreen() {
                 // If incoming but NOT autoAnswer, the user sees the in-screen accept UI
             } catch (err) {
                 console.error('Failed to start call:', err);
-                setCallStatus('Permission Denied');
+                setCallStatus('Initialization Failed');
                 setTimeout(() => router.back(), 2000);
             }
         };
@@ -197,8 +234,8 @@ export default function CallScreen() {
 
     const saveCallLog = (status: string) => {
         // Only log if we have a valid numeric convoId
-        const convoIdNum = Number(convoId);
-        if (!convoId || isNaN(convoIdNum) || convoIdNum <= 0) {
+        const convoIdNum = convoId ? Number(convoId) : 0;
+        if (isNaN(convoIdNum) || convoIdNum <= 0) {
             console.warn('saveCallLog: no valid convoId available, skipping log');
             return;
         }
@@ -224,14 +261,21 @@ export default function CallScreen() {
     const acceptCall = async () => {
         setCallStatus('Connecting...');
 
+        const hasPermission = await requestPermissions();
+        if (!hasPermission) {
+            setCallStatus('Permission Denied');
+            setTimeout(() => router.back(), 2000);
+            return;
+        }
+
         // Only get local stream if we don't already have one (prevents double-add)
         if (!localStream && webRTCService.current) {
             try {
                 const stream = await webRTCService.current.getLocalStream(callType === 'video');
                 if (stream) setLocalStream(stream);
             } catch (err) {
-                console.error('Failed to get local stream on accept:', err);
-                setCallStatus('Permission Denied');
+                console.error('CallScreen: Failed to get local stream on accept:', err);
+                setCallStatus('Initialization Failed');
                 setTimeout(() => router.back(), 2000);
                 return;
             }
@@ -245,8 +289,9 @@ export default function CallScreen() {
                     to: participantId,
                     signal: answer
                 });
+                console.log('CallScreen: Answer sent');
             } catch (error) {
-                console.error('Error accepting call:', error);
+                console.error('CallScreen: Error accepting call:', error);
                 setCallStatus('Failed to connect');
             }
         }

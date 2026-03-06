@@ -17,7 +17,10 @@ export class WebRTCService {
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
-        ]
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+        ],
+        iceCandidatePoolSize: 10,
     };
 
     constructor() {
@@ -28,9 +31,9 @@ export class WebRTCService {
         if (typeof RTCPeerConnection !== 'undefined') {
             this.peerConnection = new RTCPeerConnection(this.config);
             this.setupListeners();
-            console.log('Web RTCPeerConnection initialized');
+            console.log('RTCPeerConnection initialized');
         } else {
-            console.warn('RTCPeerConnection is not available in this environment.');
+            console.warn('RTCPeerConnection is not available.');
         }
     }
 
@@ -38,12 +41,16 @@ export class WebRTCService {
         if (!this.peerConnection) return;
 
         this.peerConnection.onicecandidate = (event) => {
-            if (event.candidate && this.onIceCandidateCallback) {
-                this.onIceCandidateCallback(event.candidate);
+            if (event.candidate) {
+                console.log('Local ICE candidate generated');
+                if (this.onIceCandidateCallback) {
+                    this.onIceCandidateCallback(event.candidate);
+                }
             }
         };
 
         this.peerConnection.ontrack = (event) => {
+            console.log('Remote track received:', event.streams[0]?.id);
             if (event.streams && event.streams[0]) {
                 this.remoteStream = event.streams[0];
                 if (this.onRemoteStreamCallback) {
@@ -53,33 +60,47 @@ export class WebRTCService {
         };
 
         this.peerConnection.onconnectionstatechange = () => {
-            if (this.peerConnection) {
-                console.log('Connection state changed:', this.peerConnection.connectionState);
-                if (this.onConnectionStateCallback) {
-                    this.onConnectionStateCallback(this.peerConnection.connectionState);
-                }
+            const state = this.peerConnection?.connectionState;
+            console.log('Connection state changed:', state);
+            if (state && this.onConnectionStateCallback) {
+                this.onConnectionStateCallback(state as RTCPeerConnectionState);
             }
+        };
+
+        this.peerConnection.oniceconnectionstatechange = () => {
+            console.log('ICE connection state changed:', this.peerConnection?.iceConnectionState);
+        };
+
+        this.peerConnection.onsignalingstatechange = () => {
+            console.log('Signaling state changed:', this.peerConnection?.signalingState);
         };
     }
 
     async getLocalStream(video: boolean = true) {
         try {
-            if (typeof navigator !== 'undefined' && navigator.mediaDevices) {
-                this.localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false
-                });
+            console.log(`Getting local stream (video: ${video})...`);
+            // Standard getUserMedia works for both web and react-native-webrtc
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: video ? {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                } : false
+            });
 
-                if (this.localStream && this.peerConnection) {
-                    const senders = this.peerConnection.getSenders();
-                    senders.forEach(sender => this.peerConnection?.removeTrack(sender));
-                    this.localStream.getTracks().forEach(track => {
-                        this.peerConnection?.addTrack(track, this.localStream!);
-                    });
-                    return this.localStream;
-                }
+            this.localStream = stream;
+
+            if (this.peerConnection) {
+                // Clear existing tracks first to avoid duplicates
+                const senders = this.peerConnection.getSenders();
+                senders.forEach(sender => this.peerConnection?.removeTrack(sender));
+
+                this.localStream.getTracks().forEach(track => {
+                    this.peerConnection?.addTrack(track, this.localStream!);
+                });
             }
-            return null;
+            return this.localStream;
         } catch (error) {
             console.error('Error getting local stream:', error);
             throw error;
@@ -101,9 +122,11 @@ export class WebRTCService {
     async handleOffer(offer: RTCSessionDescriptionInit) {
         if (!this.peerConnection) return null;
         try {
+            console.log('Handling offer...');
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
             this.isRemoteDescriptionSet = true;
             await this.flushPendingCandidates();
+
             const answer = await this.peerConnection.createAnswer();
             await this.peerConnection.setLocalDescription(answer);
             return answer;
@@ -116,6 +139,7 @@ export class WebRTCService {
     async handleAnswer(answer: RTCSessionDescriptionInit) {
         if (!this.peerConnection) return;
         try {
+            console.log('Handling answer...');
             await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
             this.isRemoteDescriptionSet = true;
             await this.flushPendingCandidates();
@@ -128,28 +152,27 @@ export class WebRTCService {
         if (!this.peerConnection) return;
         try {
             if (!this.isRemoteDescriptionSet || !this.peerConnection.remoteDescription) {
-                // Buffer the candidate until remote description is applied
-                console.log('Buffering ICE candidate (remote description not ready)');
+                console.log('Buffering remote ICE candidate...');
                 this.pendingCandidates.push(candidate);
                 return;
             }
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            console.log('Successfully added ICE candidate');
+            console.log('Added remote ICE candidate');
         } catch (e) {
-            console.error('Error adding ice candidate', e);
+            console.error('Error adding ICE candidate:', e);
         }
     }
 
     private async flushPendingCandidates() {
         if (this.pendingCandidates.length === 0) return;
-        console.log(`Flushing ${this.pendingCandidates.length} buffered ICE candidates`);
+        console.log(`Flushing ${this.pendingCandidates.length} ICE candidates...`);
         const candidates = [...this.pendingCandidates];
         this.pendingCandidates = [];
         for (const candidate of candidates) {
             try {
                 await this.peerConnection?.addIceCandidate(new RTCIceCandidate(candidate));
             } catch (e) {
-                console.error('Error flushing buffered ice candidate', e);
+                console.error('Error flushing ICE candidate:', e);
             }
         }
     }
