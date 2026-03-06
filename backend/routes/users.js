@@ -134,10 +134,44 @@ router.patch('/:id', (req, res) => {
         ).get(...values);
 
         if (!updated) return res.status(404).json({ error: 'User not found' });
-
         res.json(updated);
     } catch (err) {
         console.error('Update profile error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+/**
+ * GET /api/users/:id
+ * Fetch public profile details.
+ */
+router.get('/:id', (req, res) => {
+    const userId = parseInt(req.params.id);
+    if (!userId) return res.status(400).json({ error: 'Invalid user id' });
+
+    try {
+        const user = db.prepare('SELECT id, name, username, profile_picture, is_online, last_seen FROM Users WHERE id = ?').get(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json(user);
+    } catch (err) {
+        console.error('Fetch user error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+/**
+ * POST /api/users/push-token
+ * Register/update user's push token.
+ */
+router.post('/push-token', (req, res) => {
+    const { userId, token } = req.body;
+    if (!userId || !token) return res.status(400).json({ error: 'Missing userId or token' });
+
+    try {
+        db.prepare('UPDATE Users SET push_token = ? WHERE id = ?').run(token, userId);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Push token update error:', err);
         res.status(500).json({ error: 'Database error' });
     }
 });

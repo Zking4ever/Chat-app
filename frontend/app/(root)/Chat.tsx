@@ -473,10 +473,10 @@ export default function ChatScreen() {
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={24} color={colors.headerText} />
                     </TouchableOpacity>
-                    <View>
+                    <TouchableOpacity onPress={() => router.push({ pathname: '/(root)/Profile', params: { userId: participantId } })}>
                         <Text style={[styles.headerTitle, { color: colors.headerText }]}>{participantName || `Chat #${convoId}`}</Text>
                         {isTyping && <Text style={[styles.typingIndicatorText, { color: colors.headerText, opacity: 0.8 }]}>{typingUser} is typing...</Text>}
-                    </View>
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.headerActions}>
                     <TouchableOpacity onPress={() => startCall('audio')} style={styles.actionBtn}>

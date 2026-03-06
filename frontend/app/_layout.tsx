@@ -7,6 +7,7 @@ import Constants from 'expo-constants';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import UpdateService from '@/src/services/UpdateService';
 import SocketService from '@/src/services/SocketService';
+import { NotificationService } from '@/src/services/NotificationService';
 
 import CallNotification from '@/components/CallNotification';
 import '@/src/i18n';
@@ -29,7 +30,12 @@ function RootNavigation() {
     if (!isExpoGo && !isWeb) {
       UpdateService.checkAndApplyUpdateSilently();
     }
-  }, []);
+
+    // Register push notifications when user is logged in
+    if (user.id !== -1 && !isWeb) {
+      NotificationService.registerForPushNotificationsAsync(user.id);
+    }
+  }, [user.id]);
 
   const [incomingCall, setIncomingCall] = useState<{
     from: number;

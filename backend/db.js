@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS Users (
     profile_picture TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_seen DATETIME,
-    is_online BOOLEAN DEFAULT 0
+    is_online BOOLEAN DEFAULT 0,
+    push_token TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_phone ON Users(phone);
@@ -71,12 +72,16 @@ CREATE TABLE IF NOT EXISTS Messages (
 
 db.exec(schema);
 
-// ── Safe migration: add saved_name to Contacts if upgrading an existing DB ──
+// ── Migration: add saved_name to Contacts ──
 try {
     db.exec('ALTER TABLE Contacts ADD COLUMN saved_name TEXT');
     console.log('[db] Migration: added saved_name to Contacts');
-} catch {
-    // Column already exists — no action needed
-}
+} catch (e) { }
+
+// ── Migration: add push_token to Users ──
+try {
+    db.exec('ALTER TABLE Users ADD COLUMN push_token TEXT');
+    console.log('[db] Migration: added push_token to Users');
+} catch (e) { }
 
 module.exports = db;

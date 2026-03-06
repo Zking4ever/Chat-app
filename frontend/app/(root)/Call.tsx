@@ -34,8 +34,10 @@ export default function CallScreen() {
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
     const [connectionState, setConnectionState] = useState<any>('new');
+    const [isAnswered, setIsAnswered] = useState(false);
 
     const durationInterval = useRef<any>(null);
+    const callTimeoutRef = useRef<any>(null);
     const socket = useRef<any>(null);
     const webRTCService = useRef<WebRTCService | null>(null);
     const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -92,6 +94,11 @@ export default function CallScreen() {
             console.log('CallScreen: Connection state changed ->', state);
             setConnectionState(state);
             if (state === 'connected') {
+                setIsAnswered(true);
+                if (callTimeoutRef.current) {
+                    clearTimeout(callTimeoutRef.current);
+                    callTimeoutRef.current = null;
+                }
                 setCallStatus('Connected');
                 startTimer();
             } else if (state === 'failed') {
@@ -133,6 +140,15 @@ export default function CallScreen() {
                         convoId: convoId // Send convoId so receiver can log it
                     });
                     console.log(`Starting ${callType} call (Offer sent to ${participantId}) for conversation ${convoId}`);
+
+                    // Set call timeout for outgoing calls
+                    callTimeoutRef.current = setTimeout(() => {
+                        console.log('Call timeout reached');
+                        setCallStatus('No Answer');
+                        saveCallLog('Missed');
+                        socket.current.emit('end_call', { to: participantId });
+                        setTimeout(() => router.back(), 2000);
+                    }, 45000);
                 } else if (autoAnswer === 'true') {
                     // Incoming call with auto-answer (from banner "Accept" tap)
                     setTimeout(() => acceptCall(), 500);
@@ -170,6 +186,9 @@ export default function CallScreen() {
 
         return () => {
             stopTimer();
+            if (callTimeoutRef.current) {
+                clearTimeout(callTimeoutRef.current);
+            }
             webRTCService.current?.close();
             if (socket.current) {
                 socket.current.off('call_accepted');
@@ -240,12 +259,21 @@ export default function CallScreen() {
             return;
         }
         const finalDuration = formatDuration(duration);
+        let logText = '';
+        if (status === 'Missed') {
+            logText = `Missed ${callType} call`;
+        } else if (status === 'Canceled') {
+            logText = `Canceled ${callType} call`;
+        } else {
+            logText = `${callType === 'video' ? 'Video' : 'Audio'} call`;
+        }
+
         socket.current.emit('save_call_log', {
             conversation_id: convoIdNum,
             sender_id: user.id,
-            text: status === 'Missed' ? `Missed ${callType} call` : `${callType === 'video' ? 'Video' : 'Audio'} call`,
+            text: logText,
             callType,
-            duration: status === 'Missed' ? null : finalDuration,
+            duration: (status === 'Missed' || status === 'Canceled') ? null : finalDuration,
             status
         });
     };
@@ -253,7 +281,18 @@ export default function CallScreen() {
     const endCall = () => {
         // Always route to participantId (the other user), never convoId
         socket.current.emit('end_call', { to: participantId });
-        saveCallLog('Finished');
+
+        if (incoming === 'true' && !isAnswered) {
+            // Receiver declined without answering
+            saveCallLog('Missed');
+        } else if (incoming !== 'true' && !isAnswered) {
+            // Caller hung up before answer
+            saveCallLog('Canceled');
+        } else {
+            // Normal end
+            saveCallLog('Finished');
+        }
+
         webRTCService.current?.close();
         router.back();
     };

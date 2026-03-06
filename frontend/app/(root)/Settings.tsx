@@ -193,7 +193,7 @@ export default function Settings() {
                                 <Image source={{ uri: getImageUrl(user.profile_picture) }} style={styles.avatar} />
                             ) : (
                                 <View style={[styles.avatarFallback, { backgroundColor: colors.tint }]}>
-                                    <Text style={[styles.avatarInitial, { color: 'red' }]}>
+                                    <Text style={[styles.avatarInitial, { color: colors.background }]}>
                                         {(user.name || user.username || '?')[0].toUpperCase()}
                                     </Text>
                                 </View>
