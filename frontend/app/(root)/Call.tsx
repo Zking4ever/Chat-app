@@ -77,9 +77,15 @@ export default function CallScreen() {
         const startCallAction = async () => {
             try {
                 if (incoming !== 'true') {
-                    // Outgoing call: get stream, then create offer
+                    // Outgoing call: request permissions explicitly before getting stream
+                    setCallStatus('Requesting Permissions...');
+
                     const stream = await webRTCService.current?.getLocalStream(callType === 'video');
-                    if (stream) setLocalStream(stream);
+                    if (stream) {
+                        setLocalStream(stream);
+                    } else {
+                        throw new Error('Could not get local stream');
+                    }
 
                     const offer = await webRTCService.current?.createOffer();
                     socket.current.emit('call_user', {
@@ -89,7 +95,7 @@ export default function CallScreen() {
                         callType: callType || 'audio',
                         signalData: offer
                     });
-                    console.log(`Starting ${callType} call...`);
+                    console.log(`Starting ${callType} call (Offer sent to ${participantId})`);
                 } else if (autoAnswer === 'true') {
                     // Incoming call with auto-answer (from banner "Accept" tap)
                     setTimeout(() => acceptCall(), 500);

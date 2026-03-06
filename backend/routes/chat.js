@@ -30,7 +30,7 @@ router.get('/conversations/:userId', (req, res) => {
         const stmt = db.prepare(`
             SELECT c.*, 
             u.id as participant_id, 
-            COALESCE(con.saved_name, u.name, u.phone) as participant_name, 
+            COALESCE(NULLIF(con.saved_name, ''), NULLIF(u.name, ''), u.phone) as participant_name, 
             u.is_online,
             u.profile_picture as participant_picture,
             (SELECT text FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message,

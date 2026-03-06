@@ -127,13 +127,14 @@ export class WebRTCService {
     async addIceCandidate(candidate: RTCIceCandidateInit) {
         if (!this.peerConnection) return;
         try {
-            if (!this.isRemoteDescriptionSet) {
+            if (!this.isRemoteDescriptionSet || !this.peerConnection.remoteDescription) {
                 // Buffer the candidate until remote description is applied
-                console.log('Buffering ICE candidate (remote description not set yet)');
+                console.log('Buffering ICE candidate (remote description not ready)');
                 this.pendingCandidates.push(candidate);
                 return;
             }
             await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            console.log('Successfully added ICE candidate');
         } catch (e) {
             console.error('Error adding ice candidate', e);
         }
