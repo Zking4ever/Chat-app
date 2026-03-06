@@ -52,31 +52,40 @@ router.post('/add', (req, res) => {
 });
 
 /**
- * PATCH /api/contacts/rename
- * Update only this user's saved label for a contact — never touches Users.name.
- *
- * Body: { user_id, contact_user_id, saved_name }
+ * POST /api/contacts/sync
+ * Bulk sync contacts from a user's device.
+ * Body: { user_id, contacts: [{ phone, saved_name }] }
  */
-router.patch('/rename', (req, res) => {
-    const { user_id, contact_user_id, saved_name } = req.body;
+router.post('/sync', (req, res) => {
+    const { user_id, contacts } = req.body;
 
-    if (!user_id || !contact_user_id) {
-        return res.status(400).json({ error: 'user_id and contact_user_id are required' });
+    if (!user_id || !Array.isArray(contacts)) {
+        return res.status(400).json({ error: 'user_id and contacts array are required' });
     }
 
     try {
-        // Upsert: ensure the row exists then set the name
-        db.prepare(`
+        const insertStmt = db.prepare(`
             INSERT INTO Contacts (user_id, contact_user_id, saved_name)
-            VALUES (?, ?, ?)
+            VALUES (?, (SELECT id FROM Users WHERE phone = ?), ?)
             ON CONFLICT(user_id, contact_user_id)
             DO UPDATE SET saved_name = excluded.saved_name
-        `).run(user_id, contact_user_id, saved_name || null);
+            WHERE excluded.saved_name IS NOT NULL
+        `);
 
-        res.json({ success: true });
+        const syncTransaction = db.transaction((contacts) => {
+            for (const contact of contacts) {
+                const phone = contact.phone?.replace(/[^0-9+]/g, '');
+                if (phone) {
+                    insertStmt.run(user_id, phone, contact.saved_name || null);
+                }
+            }
+        });
+
+        syncTransaction(contacts);
+        res.json({ success: true, count: contacts.length });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Database error' });
+        console.error('Contact sync error:', err);
+        res.status(500).json({ error: 'Database error during sync' });
     }
 });
 

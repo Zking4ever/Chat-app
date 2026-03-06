@@ -31,16 +31,20 @@ export default function ContactsScreen() {
             const { status } = await Contacts.requestPermissionsAsync();
             if (status === 'granted') {
                 const { data } = await Contacts.getContactsAsync({
-                    fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Emails],
+                    fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
                 });
 
                 if (data.length > 0) {
-                    const phones = data
-                        .flatMap(c => c.phoneNumbers || [])
-                        .map(p => p.number?.replace(/[^0-9+]/g, ''))
-                        .filter(Boolean);
+                    const syncData = data.map(c => ({
+                        phone: c.phoneNumbers?.[0]?.number || '',
+                        saved_name: `${c.firstName || ''} ${c.lastName || ''}`.trim()
+                    })).filter(c => c.phone);
 
                     try {
+                        // Sync to backend for consistency across platforms
+                        await contactAPI.sync(user.id, syncData);
+
+                        const phones = syncData.map(c => c.phone.replace(/[^0-9+]/g, ''));
                         const response = await contactAPI.detect(phones as string[]);
                         const registered = response.data;
 
@@ -56,7 +60,7 @@ export default function ContactsScreen() {
 
                         setContacts(processed as any);
                     } catch (error) {
-                        console.error('Detection failed', error);
+                        console.error('Sync/Detection failed', error);
                     }
                 }
             }

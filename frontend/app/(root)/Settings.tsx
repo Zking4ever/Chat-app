@@ -14,12 +14,13 @@ import { userAPI } from '@/lib/api';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { getImageUrl } from '@/lib/imageUrl';
+import { Colors } from '@/constants/Colors';
 
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'self';
 
 export default function Settings() {
     const { t, i18n } = useTranslation();
-    const { theme, colors, toggleTheme } = useTheme();
+    const { theme, colors, toggleTheme, setTheme } = useTheme();
     const { logout, user, setUser } = useAuth();
     const router = useRouter();
 
@@ -219,19 +220,31 @@ export default function Settings() {
                 {/* ── Theme ─────────────────────────────────────────── */}
                 <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: colors.tint }]}>{t('settings.theme')}</Text>
-                    <View style={[styles.settingRow, { backgroundColor: colors.surface }]}>
-                        <View style={styles.settingInfo}>
-                            <Ionicons name={isDarkMode ? 'moon' : 'sunny'} size={22} color={colors.tint} />
-                            <Text style={[styles.settingLabel, { color: colors.text }]}>
-                                {isDarkMode ? t('settings.dark') : t('settings.light')}
-                            </Text>
-                        </View>
-                        <Switch
-                            value={isDarkMode}
-                            onValueChange={toggleTheme}
-                            trackColor={{ false: '#767577', true: colors.tint }}
-                            thumbColor={Platform.OS === 'ios' ? '#fff' : isDarkMode ? colors.tint : '#f4f3f4'}
-                        />
+                    <View style={styles.themeGrid}>
+                        {(['light', 'dark', 'telegram', 'romantic', 'darkBlue'] as const).map((tName) => (
+                            <TouchableOpacity
+                                key={tName}
+                                style={[
+                                    styles.themeOption,
+                                    { backgroundColor: Colors[tName].background, borderColor: theme === tName ? colors.tint : Colors[tName].surface }
+                                ]}
+                                onPress={() => setTheme(tName)}
+                            >
+                                <View style={[styles.themePreviewHeader, { backgroundColor: Colors[tName].headerBackground }]} />
+                                <View style={styles.themePreviewContent}>
+                                    <View style={[styles.themePreviewBubble, { alignSelf: 'flex-start', backgroundColor: Colors[tName].bubbleReceived }]} />
+                                    <View style={[styles.themePreviewBubble, { alignSelf: 'flex-end', backgroundColor: Colors[tName].bubbleSent }]} />
+                                </View>
+                                <Text style={[styles.themeLabel, { color: Colors[tName].text }]}>
+                                    {tName === 'darkBlue' ? 'Dark Blue' : tName.charAt(0).toUpperCase() + tName.slice(1)}
+                                </Text>
+                                {theme === tName && (
+                                    <View style={[styles.themeCheck, { backgroundColor: colors.tint }]}>
+                                        <Ionicons name="checkmark" size={12} color="#fff" />
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        ))}
                     </View>
                 </View>
 
@@ -482,9 +495,55 @@ const styles = StyleSheet.create({
     usernameInput: { flex: 1, paddingVertical: 13, fontSize: 16, outlineWidth: 0, outlineColor: 'transparent', marginVertical: 2 },
 
     // Username status
+    statusText: { fontSize: 12, fontWeight: '500' },
     statusRow: {
         flexDirection: 'row', alignItems: 'center',
         alignSelf: 'flex-start', marginBottom: 20, marginLeft: 4,
     },
-    statusText: { fontSize: 12, fontWeight: '500' },
+    themeGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        paddingHorizontal: 5,
+    },
+    themeOption: {
+        width: '48%',
+        borderRadius: 15,
+        borderWidth: 2,
+        padding: 10,
+        marginBottom: 15,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    themePreviewHeader: {
+        height: 12,
+        width: '100%',
+        borderRadius: 4,
+        marginBottom: 8,
+    },
+    themePreviewContent: {
+        flexDirection: 'column',
+        gap: 4,
+        marginBottom: 8,
+    },
+    themePreviewBubble: {
+        height: 6,
+        width: '60%',
+        borderRadius: 3,
+    },
+    themeLabel: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    themeCheck: {
+        position: 'absolute',
+        top: 5,
+        right: 5,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

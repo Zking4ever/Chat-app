@@ -29,7 +29,9 @@ router.get('/conversations/:userId', (req, res) => {
     try {
         const stmt = db.prepare(`
             SELECT c.*, 
-            u.id as participant_id, u.name as participant_name, u.is_online,
+            u.id as participant_id, 
+            COALESCE(con.saved_name, u.name, u.phone) as participant_name, 
+            u.is_online,
             u.profile_picture as participant_picture,
             (SELECT text FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message,
             (SELECT sent_at FROM Messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message_time
@@ -37,6 +39,7 @@ router.get('/conversations/:userId', (req, res) => {
             JOIN ConversationParticipants cp1 ON c.id = cp1.conversation_id
             JOIN ConversationParticipants cp2 ON c.id = cp2.conversation_id AND cp2.user_id != cp1.user_id
             JOIN Users u ON cp2.user_id = u.id
+            LEFT JOIN Contacts con ON con.user_id = cp1.user_id AND con.contact_user_id = u.id
             WHERE cp1.user_id = ?
             ORDER BY last_message_at DESC
         `);
@@ -111,13 +114,39 @@ router.post('/message', (req, res) => {
     }
 });
 
-// Upload a file directly to the chat
-router.post('/upload', upload.single('file'), (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
+// Upload a file directly to the chat (Base64 support)
+router.post('/upload', (req, res) => {
+    const { fileData, fileName } = req.body;
+
+    if (!fileData || !fileName) {
+        return res.status(400).json({ error: 'Missing file data or name' });
     }
-    // Return the relative URL to the uploaded file
-    res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.originalname, mimetype: req.file.mimetype });
+
+    try {
+        // Extract base64 payload
+        const matches = fileData.match(/^data:(.+);base64,(.+)$/s);
+        if (!matches) {
+            return res.status(400).json({ error: 'Invalid file data format' });
+        }
+
+        const mimetype = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        const ext = path.extname(fileName) || '.bin';
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const savedFilename = 'chat-' + uniqueSuffix + ext;
+        const filePath = path.join(uploadDir, savedFilename);
+
+        fs.writeFileSync(filePath, buffer);
+
+        res.json({
+            url: `/uploads/${savedFilename}`,
+            filename: fileName,
+            mimetype: mimetype
+        });
+    } catch (err) {
+        console.error('Upload error:', err);
+        res.status(500).json({ error: 'Failed to process upload' });
+    }
 });
 
 module.exports = router;

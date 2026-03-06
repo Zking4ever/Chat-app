@@ -16,6 +16,7 @@ export const authAPI = {
 export const contactAPI = {
     detect: (phones: string[]) => api.post('/contacts/detect', { phones }),
     add: (userId: number, contactPhone: string) => api.post('/contacts/add', { user_id: userId, contact_phone: contactPhone }),
+    sync: (userId: number, contacts: { phone: string, saved_name: string }[]) => api.post('/contacts/sync', { user_id: userId, contacts }),
 };
 
 export const chatAPI = {

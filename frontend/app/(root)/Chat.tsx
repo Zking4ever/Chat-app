@@ -125,58 +125,64 @@ export default function ChatScreen() {
     const handleSend = async () => {
         if (!inputText.trim() && !selectedFile) return;
 
+        const tempId = Date.now();
+        const msgType = selectedFile ? selectedFile.type : 'text';
+
+        // Optimistic UI message
+        const optimisticMsg = {
+            id: tempId,
+            conversation_id: Number(convoId),
+            sender_id: user.id,
+            text: selectedFile ? selectedFile.uri : inputText.trim(), // Local URI for preview
+            message_type: msgType,
+            sent_at: new Date().toISOString(),
+            status: 'sending',
+            metadata: selectedFile ? JSON.stringify({ originalName: selectedFile.name, caption: inputText.trim() || undefined }) : null
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
+        setInputText('');
+        setSelectedFile(null);
         triggerHeart();
 
         try {
-            if (selectedFile) {
+            let finalMsgData = { ...optimisticMsg };
+            delete (finalMsgData as any).status; // Server sets initial status
+
+            if (optimisticMsg.message_type !== 'text' && optimisticMsg.text) {
                 setUploading(true);
 
                 // Read base64
-                const base64Data = await FileSystem.readAsStringAsync(selectedFile.uri, { encoding: FileSystem.EncodingType.Base64 });
-                const dataUrl = `data:${selectedFile.mimeType};base64,${base64Data}`;
+                const base64Data = await FileSystem.readAsStringAsync(optimisticMsg.text, { encoding: FileSystem.EncodingType.Base64 });
+                const mimeType = optimisticMsg.message_type === 'image' ? 'image/jpeg' : 'application/octet-stream';
+                const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
                 const uploadRes = await chatAPI.uploadFile({
                     fileData: dataUrl,
-                    fileName: selectedFile.name
+                    fileName: JSON.parse(optimisticMsg.metadata!).originalName || 'file'
                 });
-                const { url, filename } = uploadRes.data;
 
-                const msgData = {
-                    conversation_id: Number(convoId),
-                    sender_id: user.id,
-                    text: url,
-                    message_type: selectedFile.type,
-                    metadata: JSON.stringify({ filename, originalName: selectedFile.name, caption: inputText.trim() || undefined })
-                };
-
-                const response = await chatAPI.sendMessage(msgData);
-                const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent' };
-
-                setInputText('');
-                setSelectedFile(null);
-
-                socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
-                socket.current.emit('send_message', newMsg);
-            } else {
-                const msgData = {
-                    conversation_id: Number(convoId),
-                    sender_id: user.id,
-                    text: inputText.trim(),
-                    message_type: 'text'
-                };
-
-                const response = await chatAPI.sendMessage(msgData);
-                const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent', message_type: 'text' };
-                setInputText('');
-
-                // Stop typing immediately on send
-                socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
-
-                // Notify via socket
-                socket.current.emit('send_message', newMsg);
+                finalMsgData.text = uploadRes.data.url;
+                const updatedMeta = JSON.parse(optimisticMsg.metadata!);
+                updatedMeta.filename = uploadRes.data.filename;
+                finalMsgData.metadata = JSON.stringify(updatedMeta);
             }
+
+            const response = await chatAPI.sendMessage(finalMsgData);
+
+            // Update local state with real ID and 'sent' status
+            setMessages(prev => prev.map(m => m.id === tempId ? { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() } : m));
+
+            // Stop typing immediately on send
+            socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
+
+            // Notify via socket
+            socket.current.emit('send_message', { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() });
+
         } catch (error) {
             console.error('Send failed', error);
+            // Mark as failed in UI if possible
+            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'failed' } : m));
         } finally {
             setUploading(false);
         }
@@ -248,12 +254,27 @@ export default function ChatScreen() {
         await recording.stopAndUnloadAsync();
         const uri = recording.getURI();
         setRecording(null);
+        const duration = recordingDuration;
         setRecordingDuration(0);
 
         if (cancel || !uri) return;
 
-        setUploading(true);
+        const tempId = Date.now();
+        const optimisticMsg = {
+            id: tempId,
+            conversation_id: Number(convoId),
+            sender_id: user.id,
+            text: uri,
+            message_type: 'audio',
+            sent_at: new Date().toISOString(),
+            status: 'sending',
+            metadata: JSON.stringify({ duration })
+        };
+
+        setMessages(prev => [...prev, optimisticMsg]);
+
         try {
+            setUploading(true);
             const base64Data = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
             const dataUrl = `data:audio/m4a;base64,${base64Data}`;
 
@@ -263,20 +284,20 @@ export default function ChatScreen() {
             });
             const { url, filename } = uploadRes.data;
 
-            const msgData = {
-                conversation_id: Number(convoId),
-                sender_id: user.id,
+            const finalMsgData = {
+                ...optimisticMsg,
                 text: url,
-                message_type: 'audio',
-                metadata: JSON.stringify({ filename, duration: recordingDuration })
+                metadata: JSON.stringify({ filename, duration })
             };
 
-            const response = await chatAPI.sendMessage(msgData);
-            const newMsg = { ...msgData, id: response.data.id, sent_at: new Date().toISOString(), status: 'sent' };
+            const response = await chatAPI.sendMessage(finalMsgData);
+            const newMsg = { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() };
 
+            setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
             socket.current.emit('send_message', newMsg);
         } catch (error) {
             console.error('Voice message failed', error);
+            setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'failed' } : m));
         } finally {
             setUploading(false);
         }
@@ -374,45 +395,52 @@ export default function ChatScreen() {
                 isMe ? [styles.myMessage, { backgroundColor: colors.bubbleSent }] : [styles.theirMessage, { backgroundColor: colors.bubbleReceived }]
             ]}>
                 {item.message_type === 'image' ? (
-                    <>
-                        <Image source={{ uri: getImageUrl(item.text) }} style={styles.messageImage} />
+                    <View style={[styles.imageWrapper, { borderColor: isMe ? 'rgba(255,255,255,0.2)' : colors.surface }]}>
+                        <Image source={{ uri: item.status === 'sending' ? item.text : getImageUrl(item.text) }} style={styles.messageImage} />
                         {item.metadata && JSON.parse(item.metadata).caption && (
-                            <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text, marginTop: 5 }]}>
+                            <Text style={[styles.messageText, { color: isMe ? colors.text2 : colors.text, marginTop: 5, paddingHorizontal: 5 }]}>
                                 {JSON.parse(item.metadata).caption}
                             </Text>
                         )}
-                    </>
+                    </View>
                 ) : item.message_type === 'document' ? (
-                    <>
-                        <View style={styles.documentContainer}>
+                    <View style={[styles.documentWrapper, { borderColor: isMe ? 'rgba(255,255,255,0.2)' : colors.surface }]}>
+                        <View style={[styles.documentContainer, { backgroundColor: isMe ? 'rgba(255,255,255,0.1)' : colors.surface }]}>
                             <Ionicons name="document-text" size={24} color={isMe ? '#fff' : colors.tint} />
-                            <Text style={[styles.documentName, { color: isMe ? '#fff' : colors.text }]} numberOfLines={1}>
+                            <Text style={[styles.documentName, { color: isMe ? colors.text2 : colors.text }]} numberOfLines={1}>
                                 {item.metadata ? JSON.parse(item.metadata).originalName : 'Document'}
                             </Text>
                         </View>
                         {item.metadata && JSON.parse(item.metadata).caption && (
-                            <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text, marginTop: 5 }]}>
+                            <Text style={[styles.messageText, { color: isMe ? colors.text2 : colors.text, marginTop: 5, paddingHorizontal: 5 }]}>
                                 {JSON.parse(item.metadata).caption}
                             </Text>
                         )}
-                    </>
+                    </View>
                 ) : item.message_type === 'audio' ? (
-                    <View style={styles.audioContainer}>
-                        <TouchableOpacity onPress={() => playAudio(item.id, item.text)} style={styles.playPauseBtn}>
-                            <Ionicons name={playingMessageId === item.id ? "pause" : "play"} size={20} color={isMe ? '#fff' : colors.tint} />
-                        </TouchableOpacity>
-                        <Text style={[styles.audioDuration, { color: isMe ? '#fff' : colors.text }]}>
-                            {item.metadata && JSON.parse(item.metadata).duration
-                                ? formatDuration(JSON.parse(item.metadata).duration)
-                                : 'Voice Note'}
-                        </Text>
+                    <View style={[styles.audioWrapper, { borderColor: isMe ? 'rgba(255,255,255,0.2)' : colors.surface }]}>
+                        <View style={styles.audioContainer}>
+                            <TouchableOpacity onPress={() => playAudio(item.id, item.text)} style={styles.playPauseBtn}>
+                                <Ionicons name={playingMessageId === item.id ? "pause" : "play"} size={20} color={isMe ? '#fff' : colors.tint} />
+                            </TouchableOpacity>
+                            <Text style={[styles.audioDuration, { color: isMe ? colors.text2 : colors.text }]}>
+                                {item.metadata && JSON.parse(item.metadata).duration
+                                    ? formatDuration(JSON.parse(item.metadata).duration)
+                                    : 'Voice Note'}
+                            </Text>
+                        </View>
                     </View>
                 ) : (
-                    <Text style={[styles.messageText, { color: isMe ? '#fff' : colors.text }]}>{item.text}</Text>
+                    <Text style={[styles.messageText, { color: isMe ? colors.text2 : colors.text }]}>{item.text}</Text>
                 )}
-                <Text style={[styles.messageTime, { color: isMe ? 'rgba(255,255,255,0.7)' : colors.textSecondary }]}>
-                    {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
+                <View style={styles.messageFooter}>
+                    {item.status === 'sending' && (
+                        <ActivityIndicator size={10} color={isMe ? '#fff' : colors.tint} style={{ marginRight: 5 }} />
+                    )}
+                    <Text style={[styles.messageTime, { color: colors.textSecondary }]}>
+                        {new Date(item.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                </View>
             </View>
         );
     };
@@ -572,7 +600,13 @@ const styles = StyleSheet.create({
         borderBottomLeftRadius: 2,
     },
     messageText: { fontSize: 16 },
-    messageTime: { fontSize: 10, alignSelf: 'flex-end', marginTop: 5 },
+    messageFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        marginTop: 5,
+    },
+    messageTime: { fontSize: 10 },
     inputArea: {
         flexDirection: 'row',
         padding: 10,
@@ -601,6 +635,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginLeft: 10,
         elevation: 3,
+    },
+    imageWrapper: {
+        borderRadius: 12,
+        borderWidth: 1,
+        overflow: 'hidden',
+        padding: 2,
+    },
+    documentWrapper: {
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 6,
+    },
+    audioWrapper: {
+        borderRadius: 12,
+        borderWidth: 1,
+        padding: 6,
     },
     messageImage: {
         width: 200,

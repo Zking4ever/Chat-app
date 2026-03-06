@@ -2,13 +2,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Colors } from '../constants/Colors';
 import StorageService from '../src/services/StorageService';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'telegram' | 'romantic' | 'darkBlue';
 
 interface ThemeContextType {
     theme: Theme;
     colors: typeof Colors.light;
     toggleTheme: () => void;
     setTheme: (theme: Theme) => void;
+    availableThemes: Theme[];
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -19,7 +20,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const loadTheme = async () => {
             const savedTheme = await StorageService.getTheme();
-            setThemeState(savedTheme);
+            if (savedTheme) setThemeState(savedTheme as Theme);
         };
         loadTheme();
     }, []);
@@ -35,10 +36,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         StorageService.setTheme(newTheme);
     };
 
-    const colors = theme === 'dark' ? Colors.dark : Colors.light;
+    const colors = Colors[theme] || Colors.dark;
+    const availableThemes: Theme[] = ['light', 'dark', 'telegram', 'romantic', 'darkBlue'];
 
     return (
-        <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme }}>
+        <ThemeContext.Provider value={{ theme, colors, toggleTheme, setTheme, availableThemes }}>
             {children}
         </ThemeContext.Provider>
     );
