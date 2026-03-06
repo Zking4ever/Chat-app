@@ -39,7 +39,7 @@ export class NotificationService {
             console.log('Push Token:', token);
 
             // Register token with backend
-            const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000'; // Fallback or use your config
+            const API_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000'; // Fallback or use your config
             await axios.post(`${API_URL}/api/users/push-token`, {
                 userId,
                 token

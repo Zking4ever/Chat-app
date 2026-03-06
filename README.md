@@ -1,56 +1,95 @@
-# Real-time Messaging & Chat Application
+# 📱 ABA Chat: High-Performance Real-Time Messaging
 
-A high-performance, real-time messaging application built with React Native (Expo) and a Node.js backend. This project features instant messaging, contact synchronization, and a smooth WhatsApp-inspired UI.
+ABA Chat is a professional-grade, cross-platform messaging application built with **React Native (Expo)**, **Node.js**, and **WebRTC**. It delivers a seamless, high-fidelity communication experience with real-time text, voice, and video capabilities.
 
-## 🚀 Key Features
+![App Showcase](https://img.shields.io/badge/Status-Advanced_Prototype-blue?style=for-the-badge)
+![React Native](https://img.shields.io/badge/React_Native-0.74+-61DAFB?style=for-the-badge&logo=react)
+![Expo](https://img.shields.io/badge/Expo-SDK_51-000020?style=for-the-badge&logo=expo)
+![NodeJS](https://img.shields.io/badge/Node.js-20+-339933?style=for-the-badge&logo=nodedotjs)
 
-- **Real-time Messaging**: Powered by Socket.io for instant delivery.
-- **WhatsApp-like UI**: Clean, intuitive interface built with React Native.
-- **Contact Detection**: Automatic synchronization and detection of contacts.
-- **Secure Authentication**: Backend-verified user sessions and phone-number-based login flows.
-- **Local Persistence**: Offline support and message history stored using SQLite.
+---
 
-## 📁 Project Structure
+## ✨ Core Features
 
-### Frontend (`/frontend`)
-- **Framework**: Expo (React Native) with File-based Routing.
-- **State Management**: React Context API (`AuthContext`) for authentication.
-- **Navigation**: Expo Router handling protected routes and layout segments.
-- **Styling**: Vanilla CSS/StyleSheet for a premium, custom feel.
+### 💬 Intelligent Messaging
+- **Real-time Delivery**: Lightning-fast message delivery powered by Socket.io.
+- **Rich Media**: Support for images, documents, and voice notes.
+- **Typing Indicators**: Real-time awareness of conversational activity.
+- **Read Receipts**: Track message status (Sent, Delivered, Read).
+- **Offline Persistence**: Full message history available offline via local SQLite database.
 
-### Backend (`/backend`)
-- **Server**: Node.js with Express.
-- **Real-time**: Socket.io for bi-directional communication.
-- **Database**: SQLite (`messaging.db`) for efficient data storage.
-- **Authentication**: Firebase Admin SDK integration (prepared for phone auth).
+### 📞 Advanced Calling (WebRTC)
+- **Voice & Video**: High-quality peer-to-peer calls using WebRTC (native & web support).
+- **Cross-Platform**: Seamless calling between iOS, Android, and Web browsers.
+- **Call Management**: Detailed call logs (Incoming, Outgoing, Canceled, Missed) with duration tracking.
+- **Privacy Controls**: Real-time audio/video toggle (mute/camera-off).
 
-## 🛠️ Getting Started
+### 🔔 Smart Notifications
+- **Push Alerts**: Instant system notifications for incoming calls and messages (powered by Expo Notifications).
+- **Background Support**: Reliable alerts even when the application is closed.
+
+### 🎨 Premium User Experience
+- **Telegram-style Profiles**: Stunning profile previews with rectangular imagery and Gaussian blur effects.
+- **Adaptive Theming**: Fully integrated Dark and Light modes.
+- **Multilingual**: Intelligent Amharic and English localization.
+- **Smooth Animations**: High-performance micro-interactions using React Native Reanimated.
+
+---
+
+## 🛠️ Technical Architecture
+
+### Frontend (Expo Ecosystem)
+- **Navigation**: Type-safe file-based routing with `expo-router`.
+- **Media Engine**: `expo-av` for audio recording/playback and `expo-image-picker` for media selection.
+- **Real-time**: `socket.io-client` for persistent signaling and messaging.
+- **WebRTC**: `react-native-webrtc` for native peer connections and standard browser APIs for web.
+
+### Backend (Node.js Infrastructure)
+- **Engine**: Express.js server optimized for low-latency signaling.
+- **Real-time**: Socket.io server managing user presence and signaling.
+- **Storage**: `better-sqlite3` for high-performance relational data persistence.
+- **Push Engine**: `expo-server-sdk` for managing cross-platform push delivery.
+
+---
+
+## 🚀 Installation & Setup
 
 ### 1. Prerequisites
 - Node.js (>= 20.0.0)
-- npm or yarn
+- Expo Go (for development) or EAS Build (for production)
 
-### 2. Setup Backend
+### 2. Backend Deployment
 ```bash
 cd backend
 npm install
 node index.js
 ```
 
-### 3. Setup Frontend
+### 3. Mobile/Web Client
 ```bash
 cd frontend
 npm install
 npx expo start
 ```
 
-## 📜 Development Notes
+---
 
-- **API Layer**: Centralized in `frontend/lib/api.ts`.
-- **Types**: Shared interfaces defined in `frontend/constants/types.ts`.
-- **Layouts**: Protected routing logic is implemented in `frontend/app/_layout.tsx`.
+## 📜 Network & WebRTC Notes
 
-## 🤝 Contributing
+> [!IMPORTANT]
+> **Why do calls sometimes fail?**
+> In real-world network environments, users are often behind firewalls or NAT (Network Address Translation). While ABA Chat uses Google's public STUN servers to navigate NAT, some "Symmetric NAT" environments require a **TURN (Traversal Using Relays around NAT)** server to relay traffic. 
+> 
+> **Current Status**: STUN only. If you encounter a "Connection Failed" state, it is likely due to restrictive network conditions which would require a TURN server for relay.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
+## 🤝 Roadmap & Contribution
+
+ABA Chat is continuously evolving. Planned features include:
+- [ ] End-to-End Encryption (E2EE)
+- [ ] Group Video Conferencing
+- [ ] Story Integration (Status Updates)
+- [ ] Global CDN for Media Storage
+
+Developed with ❤️ by Astawus Amsalu.
