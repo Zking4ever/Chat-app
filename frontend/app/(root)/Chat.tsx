@@ -122,6 +122,23 @@ export default function ChatScreen() {
         }
     };
 
+    const toBase64 = async (uri: string) => {
+        if (Platform.OS === 'web') {
+            const response = await fetch(uri);
+            const blob = await response.blob();
+            return new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64String = (reader.result as string).split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+        return await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+    };
+
     const handleSend = async () => {
         if (!inputText.trim() && !selectedFile) return;
 
@@ -152,8 +169,8 @@ export default function ChatScreen() {
             if (optimisticMsg.message_type !== 'text' && optimisticMsg.text) {
                 setUploading(true);
 
-                // Read base64
-                const base64Data = await FileSystem.readAsStringAsync(optimisticMsg.text, { encoding: FileSystem.EncodingType.Base64 });
+                // Read base64 (cross-platform)
+                const base64Data = await toBase64(optimisticMsg.text);
                 const mimeType = optimisticMsg.message_type === 'image' ? 'image/jpeg' : 'application/octet-stream';
                 const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
@@ -275,7 +292,7 @@ export default function ChatScreen() {
 
         try {
             setUploading(true);
-            const base64Data = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+            const base64Data = await toBase64(uri);
             const dataUrl = `data:audio/m4a;base64,${base64Data}`;
 
             const uploadRes = await chatAPI.uploadFile({
