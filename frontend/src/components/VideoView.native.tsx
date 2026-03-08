@@ -1,30 +1,58 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { RTCView } from 'react-native-webrtc';
 
 interface VideoViewProps {
     localStream: any;
     remoteStream: any;
     isCameraOff: boolean;
-    localVideoRef: any;
-    remoteVideoRef: any;
-    webStyles: any;
+    localVideoRef?: any;
+    remoteVideoRef?: any;
+    webStyles?: any;
 }
 
+/**
+ * Native-specific VideoView (safe for Expo Go)
+ */
 export const VideoView = ({
     localStream,
     remoteStream,
     isCameraOff,
 }: VideoViewProps) => {
+    // Dynamic import to prevent crash in Expo Go where native module is missing
+    let RTCView: any = null;
+    try {
+        RTCView = require('react-native-webrtc').RTCView;
+    } catch (e) {
+        // Fallback handled below
+    }
+
+    const renderVideo = (stream: any, style: any, isLocal: boolean = false) => {
+        if (!RTCView) {
+            return (
+                <View style={[style, styles.cameraOffPlaceholder]}>
+                    <Ionicons name="alert-circle-outline" size={24} color="#fff" />
+                    <Text style={{ color: '#fff', fontSize: 10, marginTop: 4, textAlign: 'center' }}>
+                        Dev Build Required
+                    </Text>
+                </View>
+            );
+        }
+        return (
+            <RTCView
+                streamURL={stream.toURL ? stream.toURL() : ''}
+                style={style}
+                objectFit="cover"
+                mirror={isLocal}
+                zOrder={isLocal ? 1 : 0}
+            />
+        );
+    };
+
     return (
         <>
             {remoteStream ? (
-                <RTCView
-                    streamURL={remoteStream.toURL ? remoteStream.toURL() : ''}
-                    style={styles.remoteVideo}
-                    objectFit="cover"
-                />
+                renderVideo(remoteStream, styles.remoteVideo)
             ) : (
                 <View style={styles.nativePlaceholder}>
                     <Ionicons name="person" size={80} color="#666" />
@@ -32,26 +60,21 @@ export const VideoView = ({
                 </View>
             )}
 
-            {localStream && !isCameraOff && (
-                <RTCView
-                    streamURL={localStream.toURL ? localStream.toURL() : ''}
-                    style={styles.localVideo}
-                    objectFit="cover"
-                    zOrder={1}
-                />
-            )}
-
-            {isCameraOff && (
-                <View style={[styles.localVideo, styles.cameraOffPlaceholder]}>
-                    <Ionicons name="videocam-off" size={24} color="#fff" />
-                </View>
+            {localStream && !isCameraOff ? (
+                renderVideo(localStream, styles.localVideo, true)
+            ) : (
+                isCameraOff && (
+                    <View style={[styles.localVideo, styles.cameraOffPlaceholder]}>
+                        <Ionicons name="videocam-off" size={24} color="#fff" />
+                    </View>
+                )
             )}
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    remoteVideo: { width: '100%', height: '100%' },
+    remoteVideo: { width: '100%', height: '100%', backgroundColor: '#000' },
     localVideo: {
         width: 120,
         height: 180,
@@ -64,7 +87,12 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
         zIndex: 10
     },
-    cameraOffPlaceholder: { justifyContent: 'center', alignItems: 'center', backgroundColor: '#333' },
-    nativePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    cameraOffPlaceholder: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#333',
+        borderRadius: 12
+    },
+    nativePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
     nativeText: { color: '#666', marginTop: 20 },
 });

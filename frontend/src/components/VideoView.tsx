@@ -1,7 +1,5 @@
 import React from 'react';
-import { Platform, View, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { RTCView } from 'react-native-webrtc';
+import { View, StyleSheet } from 'react-native';
 
 interface VideoViewProps {
     localStream: any;
@@ -12,6 +10,9 @@ interface VideoViewProps {
     webStyles: any;
 }
 
+/**
+ * Web-specific VideoView
+ */
 export const VideoView = ({
     localStream,
     remoteStream,
@@ -23,54 +24,33 @@ export const VideoView = ({
     return (
         <>
             {remoteStream && (
-                Platform.OS === 'web' ? (
-                    <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        style={{ ...styles.remoteVideo, ...webStyles.video }}
-                    />
-                ) : (
-                    <RTCView
-                        streamURL={remoteStream.toURL()}
-                        style={styles.remoteVideo}
-                        objectFit="cover"
-                        mirror={false}
-                    />
-                )
+                <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    style={{ ...styles.remoteVideo, ...webStyles.video }}
+                />
             )}
 
-            {localStream && !isCameraOff ? (
-                Platform.OS === 'web' ? (
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        style={{ ...styles.localVideo, ...webStyles.video }}
-                    />
-                ) : (
-                    <RTCView
-                        streamURL={localStream.toURL()}
-                        style={styles.localVideo}
-                        objectFit="cover"
-                        mirror={true}
-                        zOrder={1}
-                    />
-                )
-            ) : (
-                isCameraOff && (
-                    <View style={[styles.localVideo, styles.cameraOffPlaceholder]}>
-                        <Ionicons name="videocam-off" size={24} color="#fff" />
-                    </View>
-                )
+            {localStream && !isCameraOff && (
+                <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{ ...styles.localVideo, ...webStyles.video }}
+                />
+            )}
+
+            {isCameraOff && (
+                <View style={[styles.localVideo, styles.cameraOffPlaceholder]} />
             )}
         </>
     );
 };
 
 const styles = StyleSheet.create({
-    remoteVideo: { width: '100%', height: '100%', backgroundColor: '#000' } as any,
+    remoteVideo: { width: '100%', height: '100%', backgroundColor: '#000' },
     localVideo: {
         width: 120,
         height: 180,
@@ -82,7 +62,7 @@ const styles = StyleSheet.create({
         borderColor: '#333',
         backgroundColor: '#000',
         zIndex: 10
-    } as any,
+    },
     cameraOffPlaceholder: {
         justifyContent: 'center',
         alignItems: 'center',
