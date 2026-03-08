@@ -99,7 +99,8 @@ export default function Home() {
       onPress={() => navigation.navigate('Chat' as any, {
         convoId: item.id,
         participantId: item.participant_id,
-        participantName: item.participant_name || `Chat #${item.id}`
+        participantName: item.participant_name || `Chat #${item.id}`,
+        participantImage: item.profile_picture
       })}
     >
       <View style={styles.avatarWrapper}>

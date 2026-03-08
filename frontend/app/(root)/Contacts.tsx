@@ -89,6 +89,7 @@ export default function ContactsScreen() {
                 convoId: response.data.id,
                 participantId: contact.registeredUser.id,
                 participantName: contact.registeredUser.name || `${contact.firstName} ${contact.lastName}`.trim() || `User #${contact.registeredUser.id}`,
+                participantImage: contact.registeredUser.profile_picture,
             } as never);
         } catch (error) {
             Alert.alert('Error', 'Failed to start chat');

@@ -14,17 +14,16 @@ const memoryStore: Record<string, string> = {
 };
 
 export const StorageService = {
-    async getTheme(): Promise<'light' | 'dark'> {
+    async getTheme(): Promise<string> {
         try {
             const value = await AsyncStorage.getItem(KEYS.APP_THEME);
-            if (value === 'light' || value === 'dark') return value;
-            return (memoryStore[KEYS.APP_THEME] as 'light' | 'dark') || 'dark';
+            return value || memoryStore[KEYS.APP_THEME] || 'dark';
         } catch {
-            return (memoryStore[KEYS.APP_THEME] as 'light' | 'dark') || 'dark';
+            return memoryStore[KEYS.APP_THEME] || 'dark';
         }
     },
 
-    async setTheme(theme: 'light' | 'dark'): Promise<void> {
+    async setTheme(theme: string): Promise<void> {
         try {
             await AsyncStorage.setItem(KEYS.APP_THEME, theme);
         } catch {

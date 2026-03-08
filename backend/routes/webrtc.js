@@ -1,11 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-/**
- * Endpoint to provide ICE servers for WebRTC calls.
- * In a real production app, you might use Twilio or similar service
- * to generate ephemeral credentials for TURN servers.
- */
 let cachedIceServers = null;
 let cacheExpiry = 0;
 

@@ -10,8 +10,6 @@ import { VideoView } from '@/src/components/VideoView';
 import { Audio } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 
-// Helper: attach a MediaStream to a hidden <audio> element for audio-only calls on web.
-// React Native audio is handled automatically by react-native-webrtc's native layer.
 function attachAudioToElement(element: HTMLAudioElement | null, stream: any) {
     if (!element || !stream) return;
     if (element.srcObject !== stream) {
@@ -78,7 +76,6 @@ export default function CallScreen() {
 
         // Register ALL callbacks FIRST — before any async work — so no events are missed
         webRTCService.current.onRemoteStream((stream) => {
-            console.log('Remote stream received in CallScreen');
             setRemoteStream(stream);
         });
 

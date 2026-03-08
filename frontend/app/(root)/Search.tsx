@@ -69,6 +69,7 @@ export default function Search() {
                     convoId: String(convoId),
                     participantId: String(targetUser.id),
                     participantName: targetUser.name || targetUser.username || `User #${targetUser.id}`,
+                    participantImage: targetUser.profile_picture,
                 }
             } as any);
         } catch (error) {

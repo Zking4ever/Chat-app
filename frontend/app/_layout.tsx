@@ -16,10 +16,13 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootNavigation() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { isThemeLoaded, theme } = useTheme();
   const router = useRouter();
   const segments = useSegments();
   const [isMounted, setIsMounted] = useState(false);
+
+  const isAppDataReady = isMounted && !isAuthLoading && isThemeLoaded;
 
   useEffect(() => {
 
@@ -97,12 +100,15 @@ function RootNavigation() {
   };
 
   useEffect(() => {
-    if (!isMounted || isLoading) return;
+    if (!isAppDataReady) return;
 
     const inAuthScreens =
       segments[0] === undefined ||
       segments[0] === 'Login' ||
       segments[0] === 'Register';
+
+    // Hide splash screen once we know where we are going
+    SplashScreen.hideAsync().catch(() => { });
 
     if (user.id !== -1 && inAuthScreens) {
       router.replace('/(root)/Home');
@@ -111,11 +117,9 @@ function RootNavigation() {
     if (user.id === -1 && !inAuthScreens) {
       router.replace('/');
     }
-  }, [user.id, isMounted, isLoading, segments]);
+  }, [user.id, isAppDataReady, segments]);
 
-  const { theme } = useTheme();
-
-  if (!isMounted || isLoading) return null;
+  if (!isAppDataReady) return null;
 
   return (
     <>
@@ -134,6 +138,9 @@ function RootNavigation() {
     </>
   );
 }
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 export default function RootLayout() {
   return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { chatAPI } from '@/lib/api';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -17,6 +18,7 @@ export default function ProfileScreen() {
     const router = useRouter();
     const { theme } = useTheme();
     const { user: currentUser } = useAuth();
+    const insets = useSafeAreaInsets();
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -49,7 +51,8 @@ export default function ProfileScreen() {
                 params: {
                     convoId: String(res.data.id),
                     participantId: String(user.id),
-                    participantName: user.name
+                    participantName: user.name,
+                    participantImage: user.profile_picture
                 }
             } as any);
         } catch (error) {
@@ -98,109 +101,111 @@ export default function ProfileScreen() {
     }
 
     return (
-        <ScrollView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]} bounces={false}>
-            {/* Header / Background Image Section */}
-            <View style={styles.imageHeader}>
-                {user.profile_picture ? (
-                    <Image
-                        source={{ uri: `${API_BASE_URL}${user.profile_picture}` }}
-                        style={styles.headerImage}
-                        resizeMode="cover"
-                    />
-                ) : (
-                    <View style={[styles.placeholderHeader, { backgroundColor: isDark ? '#2c3e50' : '#3498db' }]}>
-                        <Ionicons name="person" size={120} color="rgba(255,255,255,0.4)" />
-                    </View>
-                )}
-
-                {/* Top Controls */}
-                <View style={styles.topControls}>
-                    <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.iconButton}>
-                        <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Bottom Overlay with Name and Blur */}
-                <LinearGradient
-                    colors={['transparent', 'rgba(0,0,0,0.8)']}
-                    style={styles.gradientOverlay}
-                >
-                    <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
-                        <View style={styles.nameContainer}>
-                            <View>
-                                <Text style={styles.nameText}>{user.name}</Text>
-                                <Text style={styles.statusTextOverlay}>
-                                    {user.is_online ? 'online' : `last seen ${new Date(user.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                                </Text>
-                            </View>
-                            {user.is_online && <View style={styles.onlineDot} />}
+        <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]} edges={['bottom', 'left', 'right']}>
+            <ScrollView style={styles.container} bounces={false}>
+                {/* Header / Background Image Section */}
+                <View style={styles.imageHeader}>
+                    {user.profile_picture ? (
+                        <Image
+                            source={{ uri: `${API_BASE_URL}${user.profile_picture}` }}
+                            style={styles.headerImage}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <View style={[styles.placeholderHeader, { backgroundColor: isDark ? '#2c3e50' : '#3498db' }]}>
+                            <Ionicons name="person" size={120} color="rgba(255,255,255,0.4)" />
                         </View>
-                    </BlurView>
-                </LinearGradient>
-            </View>
-
-            {/* Info Section */}
-            <View style={[styles.infoCard, { backgroundColor: isDark ? '#1c1c1c' : '#fff' }]}>
-                <View style={styles.infoRow}>
-                    <Ionicons name="at" size={22} color="#25D366" style={styles.infoIcon} />
-                    <View style={styles.infoTextContainer}>
-                        <Text style={[styles.infoLabel, { color: isDark ? '#aaa' : '#666' }]}>Username</Text>
-                        <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#000' }]}>@{user.username}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.separator} />
-
-                <View style={styles.infoRow}>
-                    <Ionicons name="information-circle-outline" size={22} color="#25D366" style={styles.infoIcon} />
-                    <View style={styles.infoTextContainer}>
-                        <Text style={[styles.infoLabel, { color: isDark ? '#aaa' : '#666' }]}>Bio</Text>
-                        <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#000' }]}>
-                            {user.bio || "No bio yet"}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-
-            {/* Action Section */}
-            <View style={styles.actionSection}>
-                <TouchableOpacity
-                    style={[styles.primaryActionButton, { backgroundColor: '#25D366' }, actionLoading && { opacity: 0.7 }]}
-                    onPress={navigateToChat}
-                    disabled={actionLoading}
-                >
-                    {actionLoading ? <ActivityIndicator color="#fff" /> : (
-                        <>
-                            <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
-                            <Text style={styles.actionButtonText}>Send Message</Text>
-                        </>
                     )}
-                </TouchableOpacity>
 
-                <View style={styles.callGrid}>
-                    <TouchableOpacity
-                        style={[styles.callButton, { backgroundColor: isDark ? '#2c2c2c' : '#fff' }]}
-                        onPress={() => navigateToCall('audio')}
-                        disabled={actionLoading}
-                    >
-                        <Ionicons name="call" size={20} color="#25D366" />
-                        <Text style={[styles.callButtonText, { color: isDark ? '#fff' : '#000' }]}>Audio Call</Text>
-                    </TouchableOpacity>
+                    {/* Top Controls */}
+                    <View style={[styles.topControls, { top: Math.max(insets.top, 20) }]}>
+                        <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
+                            <Ionicons name="arrow-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.iconButton}>
+                            <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
+                        </TouchableOpacity>
+                    </View>
 
-                    <TouchableOpacity
-                        style={[styles.callButton, { backgroundColor: isDark ? '#2c2c2c' : '#fff' }]}
-                        onPress={() => navigateToCall('video')}
-                        disabled={actionLoading}
+                    {/* Bottom Overlay with Name and Blur */}
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.8)']}
+                        style={styles.gradientOverlay}
                     >
-                        <Ionicons name="videocam" size={20} color="#25D366" />
-                        <Text style={[styles.callButtonText, { color: isDark ? '#fff' : '#000' }]}>Video Call</Text>
-                    </TouchableOpacity>
+                        <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+                            <View style={styles.nameContainer}>
+                                <View>
+                                    <Text style={styles.nameText}>{user.name}</Text>
+                                    <Text style={styles.statusTextOverlay}>
+                                        {user.is_online ? 'online' : `last seen ${new Date(user.last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                                    </Text>
+                                </View>
+                                {user.is_online && <View style={styles.onlineDot} />}
+                            </View>
+                        </BlurView>
+                    </LinearGradient>
                 </View>
-            </View>
-        </ScrollView>
+
+                {/* Info Section */}
+                <View style={[styles.infoCard, { backgroundColor: isDark ? '#1c1c1c' : '#fff' }]}>
+                    <View style={styles.infoRow}>
+                        <Ionicons name="at" size={22} color="#25D366" style={styles.infoIcon} />
+                        <View style={styles.infoTextContainer}>
+                            <Text style={[styles.infoLabel, { color: isDark ? '#aaa' : '#666' }]}>Username</Text>
+                            <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#000' }]}>@{user.username}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.separator} />
+
+                    <View style={styles.infoRow}>
+                        <Ionicons name="information-circle-outline" size={22} color="#25D366" style={styles.infoIcon} />
+                        <View style={styles.infoTextContainer}>
+                            <Text style={[styles.infoLabel, { color: isDark ? '#aaa' : '#666' }]}>Bio</Text>
+                            <Text style={[styles.infoValue, { color: isDark ? '#fff' : '#000' }]}>
+                                {user.bio || "No bio yet"}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Action Section */}
+                <View style={styles.actionSection}>
+                    <TouchableOpacity
+                        style={[styles.primaryActionButton, { backgroundColor: '#25D366' }, actionLoading && { opacity: 0.7 }]}
+                        onPress={navigateToChat}
+                        disabled={actionLoading}
+                    >
+                        {actionLoading ? <ActivityIndicator color="#fff" /> : (
+                            <>
+                                <Ionicons name="chatbubble-ellipses" size={22} color="#fff" />
+                                <Text style={styles.actionButtonText}>Send Message</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+
+                    <View style={styles.callGrid}>
+                        <TouchableOpacity
+                            style={[styles.callButton, { backgroundColor: isDark ? '#2c2c2c' : '#fff' }]}
+                            onPress={() => navigateToCall('audio')}
+                            disabled={actionLoading}
+                        >
+                            <Ionicons name="call" size={20} color="#25D366" />
+                            <Text style={[styles.callButtonText, { color: isDark ? '#fff' : '#000' }]}>Audio Call</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.callButton, { backgroundColor: isDark ? '#2c2c2c' : '#fff' }]}
+                            onPress={() => navigateToCall('video')}
+                            disabled={actionLoading}
+                        >
+                            <Ionicons name="videocam" size={20} color="#25D366" />
+                            <Text style={[styles.callButtonText, { color: isDark ? '#fff' : '#000' }]}>Video Call</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 

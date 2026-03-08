@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { RTCView } from 'react-native-webrtc';
 
 interface VideoViewProps {
     localStream: any;
@@ -22,22 +23,41 @@ export const VideoView = ({
     return (
         <>
             {remoteStream && (
-                <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    style={{ ...styles.remoteVideo, ...webStyles.video }}
-                />
+                Platform.OS === 'web' ? (
+                    <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        playsInline
+                        style={{ ...styles.remoteVideo, ...webStyles.video }}
+                    />
+                ) : (
+                    <RTCView
+                        streamURL={remoteStream.toURL()}
+                        style={styles.remoteVideo}
+                        objectFit="cover"
+                        mirror={false}
+                    />
+                )
             )}
 
             {localStream && !isCameraOff ? (
-                <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    style={{ ...styles.localVideo, ...webStyles.video }}
-                />
+                Platform.OS === 'web' ? (
+                    <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        style={{ ...styles.localVideo, ...webStyles.video }}
+                    />
+                ) : (
+                    <RTCView
+                        streamURL={localStream.toURL()}
+                        style={styles.localVideo}
+                        objectFit="cover"
+                        mirror={true}
+                        zOrder={1}
+                    />
+                )
             ) : (
                 isCameraOff && (
                     <View style={[styles.localVideo, styles.cameraOffPlaceholder]}>

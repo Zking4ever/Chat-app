@@ -20,7 +20,7 @@ import { useTheme } from '@/context/ThemeContext';
 export default function ChatScreen() {
     const { user } = useAuth();
     const { colors } = useTheme();
-    const { convoId, participantId, participantName } = useLocalSearchParams();
+    const { convoId, participantId, participantName, participantImage } = useLocalSearchParams();
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState('');
     const navigation = useNavigation();
@@ -192,7 +192,7 @@ export default function ChatScreen() {
             });
 
             // Update local state with real ID and 'sent' status
-            setMessages(prev => prev.map(m => m.id === tempId ? { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() } : m));
+            // setMessages(prev => prev.map(m => m.id === tempId ? { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() } : m));
 
             // Stop typing immediately on send
             socket.current.emit('stop_typing', { convoId: Number(convoId), userId: user.id });
@@ -314,7 +314,7 @@ export default function ChatScreen() {
             const response = await chatAPI.sendMessage(finalMsgData);
             const newMsg = { ...finalMsgData, id: response.data.id, status: 'sent', sent_at: new Date().toISOString() };
 
-            setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
+            // setMessages(prev => prev.map(m => m.id === tempId ? newMsg : m));
             socket.current.emit('send_message', newMsg);
         } catch (error) {
             console.error('Voice message failed', error);
@@ -473,9 +473,30 @@ export default function ChatScreen() {
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                         <Ionicons name="arrow-back" size={24} color={colors.headerText} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => router.push({ pathname: '/(root)/Profile', params: { userId: participantId } })}>
-                        <Text style={[styles.headerTitle, { color: colors.headerText }]}>{participantName || `Chat #${convoId}`}</Text>
-                        {isTyping && <Text style={[styles.typingIndicatorText, { color: colors.headerText, opacity: 0.8 }]}>{typingUser} is typing...</Text>}
+                    <TouchableOpacity
+                        style={styles.headerProfileInfo}
+                        onPress={() => router.push({ pathname: '/(root)/Profile', params: { userId: participantId } })}
+                    >
+                        {participantImage ? (
+                            <Image
+                                source={{ uri: getImageUrl(participantImage as string) }}
+                                style={styles.headerAvatar}
+                            />
+                        ) : (
+                            <View style={[styles.headerAvatar, { backgroundColor: colors.tint, justifyContent: 'center', alignItems: 'center' }]}>
+                                <Ionicons name="person" size={20} color="#fff" />
+                            </View>
+                        )}
+                        <View style={styles.headerTextContainer}>
+                            <Text style={[styles.headerTitle, { color: colors.headerText }]} numberOfLines={1}>
+                                {participantName || `Chat #${convoId}`}
+                            </Text>
+                            {isTyping && (
+                                <Text style={[styles.typingIndicatorText, { color: colors.headerText, opacity: 0.8 }]}>
+                                    {typingUser} typing...
+                                </Text>
+                            )}
+                        </View>
                     </TouchableOpacity>
                 </View>
                 <View style={styles.headerActions}>
@@ -488,21 +509,18 @@ export default function ChatScreen() {
                 </View>
             </View>
 
-            <FlatList
-                data={messages}
-                renderItem={renderItem}
-                keyExtractor={(item: any) => item.id?.toString() || Math.random().toString()}
-                contentContainerStyle={styles.messageList}
-            />
-
-            <Animated.View style={heartStyle}>
-                <Text style={{ fontSize: 40 }}>❤️</Text>
-            </Animated.View>
-
             <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                style={{ flex: 1 }}
             >
+                <FlatList
+                    data={messages}
+                    renderItem={renderItem}
+                    keyExtractor={(item: any) => item.id?.toString() || Math.random().toString()}
+                    contentContainerStyle={styles.messageList}
+                    inverted={false} // Assuming messages are oldest to newest
+                />
                 {selectedFile && (
                     <View style={[styles.previewContainer, { backgroundColor: colors.surface, borderTopColor: colors.background }]}>
                         <TouchableOpacity style={styles.previewClose} onPress={() => setSelectedFile(null)}>
@@ -586,21 +604,37 @@ const styles = StyleSheet.create({
     headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+    },
+    headerProfileInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    headerAvatar: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 10,
+    },
+    headerTextContainer: {
+        flex: 1,
+        justifyContent: 'center',
     },
     headerActions: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     actionBtn: {
-        marginLeft: 20,
+        marginLeft: 15,
     },
     typingIndicatorText: {
-        fontSize: 12,
+        fontSize: 11,
         fontStyle: 'italic',
     },
-    backBtn: { marginRight: 15 },
-    headerTitle: { fontSize: 18, fontWeight: 'bold' },
-    messageList: { padding: 10 },
+    backBtn: { marginRight: 10 },
+    headerTitle: { fontSize: 17, fontWeight: 'bold' },
+    messageList: { padding: 10, paddingBottom: 20 },
     messageBox: {
         maxWidth: '80%',
         padding: 10,
